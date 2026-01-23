@@ -290,7 +290,7 @@ export default function ProductPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-background border-b border-neutral-200/50 dark:border-neutral-800/50">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => router.back()}
             className="p-2 -ml-2 rounded-full hover:bg-neutral-100 dark:hover:bg-muted transition-colors"
@@ -302,7 +302,7 @@ export default function ProductPage() {
       </header>
 
       {/* Conteúdo */}
-      <div className="max-w-2xl mx-auto pb-32">
+      <div className="max-w-4xl mx-auto ">
         {/* Imagem do Produto */}
         <div className="relative w-full h-64 sm:h-80 bg-gradient-to-br from-neutral-100 to-neutral-50 dark:from-neutral-800 dark:to-neutral-900">
           {imageError ? (
@@ -469,7 +469,7 @@ export default function ProductPage() {
 
               {/* Lista de toppings - oculta se categoria pulada */}
               {!isSkipped && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   {toppings.map((topping) => {
                     const qty = toppingQuantities[topping.id] || 0;
                     // Mostrar preço se: é extra OU se o total da categoria >= limite grátis
@@ -547,11 +547,11 @@ export default function ProductPage() {
         </Card>
 
         {/* Observações */}
-        <Card className="rounded-none border-x-0 border-t-0">
+        <Card className="rounded-none border-0 pb-0">
           <CardHeader>
             <CardTitle>Alguma observação?</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pb-20">
             <textarea
               value={observations}
               onChange={(e) => setObservations(sanitizeObservations(e.target.value))}
@@ -564,8 +564,8 @@ export default function ProductPage() {
       </div>
 
       {/* Footer fixo com quantidade e botão */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-900 border-t border-neutral-200/50 dark:border-neutral-800/50 shadow-lg z-50 backdrop-blur-sm">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-900 shadow-lg z-50 backdrop-blur-sm">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-center gap-3">
           {/* Quantidade */}
           <div className="flex items-center gap-2 bg-neutral-100 dark:bg-muted rounded-xl p-0.5">
             <button
@@ -592,7 +592,7 @@ export default function ProductPage() {
           <Button
             onClick={handleAddToCart}
             disabled={!isFormValid}
-            className="flex-1 h-12 text-white font-semibold text-base rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 h-12 text-white font-semibold text-base rounded-xl disabled:opacity-50 disabled:cursor-not-allowed max-w-md"
             style={{ backgroundColor: '#139948' }}
           >
             Adicionar • R$ {totalPrice.toFixed(2)}

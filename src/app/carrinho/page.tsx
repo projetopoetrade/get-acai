@@ -22,6 +22,7 @@ import { useCart } from '@/hooks/useCart';
 import { toast } from 'sonner';
 import { CartItem } from '@/types/cart';
 import { sanitizeCouponCode } from '@/lib/sanitize';
+import { couponSchema } from '@/lib/validations';
 
 // =====================================================
 // COMPONENTE DE ITEM DO CARRINHO
@@ -171,16 +172,25 @@ export default function CarrinhoPage() {
   // Validar cupom
   // TODO: POST /api/coupons/validate
   const handleApplyCoupon = async () => {
-    if (!couponCode.trim()) return;
-    
     setCouponLoading(true);
     setCouponError('');
+
+    // Validação com Zod
+    const result = couponSchema.safeParse({ code: couponCode });
+
+    if (!result.success) {
+      const firstError = result.error.issues[0];
+      setCouponError(firstError?.message || 'Código inválido');
+      setCouponLoading(false);
+      return;
+    }
 
     // Simular validação (substituir por API)
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     // Mock: cupom "ACAI10" dá 10% de desconto
-    if (couponCode.toUpperCase() === 'ACAI10') {
+    const code = result.data.code;
+    if (code === 'ACAI10') {
       cart.applyCoupon({
         code: 'ACAI10',
         type: 'percentage',
@@ -188,7 +198,7 @@ export default function CarrinhoPage() {
       });
       toast.success('Cupom aplicado!', { description: '10% de desconto' });
       setCouponCode('');
-    } else if (couponCode.toUpperCase() === 'FRETE') {
+    } else if (code === 'FRETE') {
       cart.applyCoupon({
         code: 'FRETE',
         type: 'freeDelivery',
@@ -209,7 +219,7 @@ export default function CarrinhoPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <Header />
 
@@ -374,7 +384,7 @@ export default function CarrinhoPage() {
             {/* Botão de finalizar */}
             <Button
               onClick={handleCheckout}
-              className="w-full h-14 text-white font-semibold text-base rounded-xl mt-4"
+              className="w-full h-14 text-white font-semibold text-base rounded-xl mt-4 mb-4"
               style={{ backgroundColor: '#139948' }}
             >
               Escolher forma de pagamento

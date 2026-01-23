@@ -6,6 +6,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { ThemeProvider } from '@/components/theme-provider';
 import { BottomNav } from '@/components/layout/bottom-nav';
 
+
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
@@ -27,11 +28,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="pb-20">
+
             {children}
-          </div>
-          <BottomNav />
-          <Toaster position="top-center" />
+            <BottomNav />
+            <Toaster position="top-center" />
+
         </ThemeProvider>
       </body>
     </html>

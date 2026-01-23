@@ -524,9 +524,184 @@ useEffect(() => {
 
 ---
 
-### 6. Autenticação (Futuro)
+### 6. Autenticação
 
-#### Fluxo sugerido: OTP via SMS/WhatsApp
+**Objetivo:** Gerenciar login, registro e proteção de rotas usando JWT.
+
+**Mocks Atuais:**
+- `src/contexts/AuthContext.tsx`: Contém lógica mock de login/registro
+- `src/app/login/page.tsx`: Página de login
+- `src/app/cadastro/page.tsx`: Página de cadastro
+- `src/middleware.ts`: Middleware de proteção de rotas
+
+**Endpoints Necessários:**
+
+#### POST /api/auth/login
+Login do usuário com email e senha.
+
+**Payload:**
+```typescript
+{
+  email: string;
+  password: string;
+}
+```
+
+**Resposta (200 OK):**
+```typescript
+{
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string;
+    avatar?: string;
+    createdAt: string;
+  };
+  token: string; // JWT token
+  refreshToken?: string; // Opcional, para refresh
+}
+```
+
+**Erros:**
+- `401 Unauthorized`: Credenciais inválidas
+- `400 Bad Request`: Dados inválidos
+
+#### POST /api/auth/register
+Registro de novo usuário.
+
+**Payload:**
+```typescript
+{
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+}
+```
+
+**Resposta (201 Created):**
+```typescript
+{
+  user: User;
+  token: string;
+  refreshToken?: string;
+}
+```
+
+**Erros:**
+- `400 Bad Request`: Email já existe, dados inválidos
+- `422 Unprocessable Entity`: Validação falhou
+
+#### GET /api/auth/me
+Obter dados do usuário autenticado (requer token JWT).
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Resposta (200 OK):**
+```typescript
+{
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  avatar?: string;
+  createdAt: string;
+}
+```
+
+**Erros:**
+- `401 Unauthorized`: Token inválido ou expirado
+
+#### POST /api/auth/refresh (Opcional)
+Renovar token JWT usando refresh token.
+
+**Payload:**
+```typescript
+{
+  refreshToken: string;
+}
+```
+
+**Resposta (200 OK):**
+```typescript
+{
+  token: string;
+  refreshToken?: string;
+}
+```
+
+#### POST /api/auth/logout
+Logout do usuário (invalidar token no backend, se necessário).
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Resposta (200 OK):**
+```typescript
+{
+  message: "Logout realizado com sucesso";
+}
+```
+
+**Como Integrar:**
+
+1. **Atualizar `src/contexts/AuthContext.tsx`:**
+   ```typescript
+   // Substituir a função login:
+   const login = async (credentials: LoginCredentials) => {
+     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify(credentials),
+     });
+     
+     if (!response.ok) {
+       const error = await response.json();
+       throw new Error(error.message || 'Erro ao fazer login');
+     }
+     
+     const data: AuthResponse = await response.json();
+     setAuthToken(data.token);
+     setUserData(data.user);
+     setUser(data.user);
+   };
+   ```
+
+2. **Atualizar `src/lib/auth.ts`:**
+   - Considerar usar cookies httpOnly para armazenar token (mais seguro)
+   - Implementar refresh automático de token quando expirar
+
+3. **Atualizar `src/middleware.ts`:**
+   - Verificar token JWT no cookie ou header
+   - Validar token com backend antes de permitir acesso
+
+4. **Proteção de Rotas:**
+   - Rotas protegidas: `/pedidos`, `/perfil`, `/checkout`
+   - Middleware já implementado, apenas precisa validar token com backend
+
+**Estrutura JWT esperada:**
+```typescript
+{
+  sub: string; // User ID
+  email: string;
+  name: string;
+  iat: number; // Issued at
+  exp: number; // Expiration
+}
+```
+
+**Notas:**
+- O frontend está preparado para receber JWT do NestJS
+- Token deve ser enviado em todas as requisições autenticadas via header `Authorization: Bearer <token>`
+- Considerar implementar refresh token para melhor UX
+
+#### Fluxo sugerido: OTP via SMS/WhatsApp (Futuro)
 
 ```typescript
 // POST /auth/login
@@ -595,9 +770,13 @@ NEXT_PUBLIC_ENV=production
 - [ ] Cache de dados com SWR ou React Query
 
 ### Fase 3: Autenticação
-- [ ] Criar fluxo de login por OTP
-- [ ] Persistir token
-- [ ] Proteger rotas de pedidos
+- [x] Criar fluxo de login/registro (frontend)
+- [x] Context e hook de autenticação
+- [x] Páginas de login e cadastro
+- [x] Middleware de proteção de rotas
+- [ ] Integrar com API NestJS (POST /api/auth/login, /api/auth/register)
+- [ ] Implementar refresh token
+- [ ] Proteger rotas no backend
 - [ ] Histórico de pedidos do usuário
 - [ ] Endereços salvos
 
@@ -659,6 +838,7 @@ npm install swr
 | Jan 2026 | Pedidos | Adicionada página de pedidos com WhatsApp |
 | Jan 2026 | Carrinho | Página completa com cupom, resumo e endereço |
 | Jan 2026 | Checkout | Página de finalização com endereço, pagamento e modal de novo endereço |
+| Jan 2026 | Autenticação | Sistema completo de login/registro com Context, JWT e proteção de rotas |
 | - | - | - |
 
 ---

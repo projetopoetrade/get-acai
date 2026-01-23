@@ -25,6 +25,7 @@ import { toast } from 'sonner';
 import { SavedAddress } from '@/types/api';
 import { DeliveryType, PaymentMethod } from '@/types/cart';
 import { sanitizeCep, sanitizeAddress, sanitizeName, sanitizeNumber, sanitizeMoneyValue } from '@/lib/sanitize';
+import { addressSchema, type AddressFormData } from '@/lib/validations';
 
 // =====================================================
 // MOCK DE ENDEREÇOS SALVOS
@@ -124,14 +125,20 @@ function AddressModal({ isOpen, onClose, onSave }: AddressModalProps) {
   };
 
   const handleSubmit = () => {
-    if (!formData.street || !formData.number || !formData.neighborhood) {
-      toast.error('Preencha os campos obrigatórios');
+    // Validação com Zod
+    const result = addressSchema.safeParse(formData);
+
+    if (!result.success) {
+      const firstError = result.error.issues[0];
+      toast.error(firstError?.message || 'Preencha os campos obrigatórios');
       return;
     }
 
     const newAddress: SavedAddress = {
       id: `addr-${Date.now()}`,
-      ...formData,
+      ...result.data,
+      complement: result.data.complement || '',
+      reference: result.data.reference || '',
       isDefault: false,
     };
 
