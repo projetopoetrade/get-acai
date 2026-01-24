@@ -6,6 +6,38 @@
 // =====================================================
 // RESPOSTAS GENÉRICAS
 // =====================================================
+// Payload para criar pedido
+export interface CreateOrderRequest {
+  items: OrderItemRequest[];
+  paymentMethod: 'pix' | 'cash' | 'credit' | 'debit';
+  deliveryMethod: 'delivery' | 'pickup';
+  addressId?: string;
+  notes?: string;
+  changeFor?: number; // para pagamento em dinheiro
+}
+
+export interface Address {
+  id: string;
+  street: string;
+  number: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  complement?: string;
+  reference?: string;
+}
+
+export interface OrderItemRequest {
+  productId: string;
+  quantity: number;
+  notes?: string;
+  toppings?: CreateOrderItemToppingRequest[];
+}
+
+export interface CreateOrderItemToppingRequest {
+  toppingId: string;
+  quantity: number;
+}
 
 export interface APIResponse<T> {
   success: boolean;
@@ -27,6 +59,25 @@ export interface APIMeta {
   totalPages?: number;
 }
 
+export interface Product {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  imageUrl?: string;
+  available: boolean;
+  categoryId?: string;  // ← para filtro
+  category?: string;    // ← para ProductCard
+  categoryName?: string;
+  originalPrice?: number;
+  size?: {
+    id: string;
+    name: string;
+  };
+  stock?: number | null;
+}
+
+
 // =====================================================
 // CONFIGURAÇÕES DA LOJA
 // =====================================================
@@ -39,7 +90,7 @@ export interface StoreConfig {
   phone: string;
   whatsapp?: string;
   email?: string;
-  
+
   // Endereço
   address: {
     street: string;
@@ -49,10 +100,12 @@ export interface StoreConfig {
     state: string;
     zipCode: string;
   };
-  
+
+
+
   // Horários de funcionamento
   businessHours: BusinessHours[];
-  
+
   // Configurações de pedido
   orderSettings: {
     minOrderValue: number;
@@ -60,10 +113,10 @@ export interface StoreConfig {
     estimatedPrepTime: number; // minutos
     acceptsScheduledOrders: boolean;
   };
-  
+
   // Configurações de pagamento
   paymentMethods: PaymentMethodConfig[];
-  
+
   // Configurações de entrega
   deliverySettings: {
     enabled: boolean;
@@ -72,13 +125,13 @@ export interface StoreConfig {
     fixedDeliveryFee?: number;
     deliveryZones?: DeliveryZone[];
   };
-  
+
   // Configurações de retirada
   pickupSettings: {
     enabled: boolean;
     discountPercentage?: number;
   };
-  
+
   // Status da loja
   isOpen: boolean;
   temporarilyClosed: boolean;

@@ -21,7 +21,7 @@ export interface User {
   export interface AuthResponse {
     access_token: string;
     user: User;
-  }
+  } 
   
   export interface AuthResult {
     success: boolean;

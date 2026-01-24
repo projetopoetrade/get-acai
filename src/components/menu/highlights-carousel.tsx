@@ -136,14 +136,14 @@ export function HighlightsCarousel() {
                       <div className="flex items-baseline gap-2">
                         {product.hasPromo && product.originalPrice && (
                           <span className="text-xs text-neutral-400 dark:text-neutral-500 line-through">
-                            R$ {product.originalPrice.toFixed(2)}
+                            R$ {Number(product.originalPrice).toFixed(2)}
                           </span>
                         )}
                         <span 
                           className="text-base font-bold"
                           style={{ color: '#9d0094' }}
                         >
-                          R$ {product.price.toFixed(2)}
+                          R$ {Number(product.price || 0).toFixed(2)}
                         </span>
                       </div>
                     </div>

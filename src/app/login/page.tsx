@@ -4,7 +4,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { login } from '@/lib/auth';
+// Removido import do login direto, pois vamos usar a rota de API
+// import { login } from '@/lib/auth'; 
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { loginSchema, type LoginFormData } from '@/lib/validations';
@@ -27,7 +28,7 @@ export default function LoginPage() {
 
     if (!result.success) {
       const fieldErrors: Partial<Record<keyof LoginFormData, string>> = {};
-      result.error.errors.forEach((err) => {
+      result.error.issues.forEach((err) => {
         if (err.path[0]) {
           fieldErrors[err.path[0] as keyof LoginFormData] = err.message;
         }
@@ -37,19 +38,47 @@ export default function LoginPage() {
       return;
     }
 
-    // Chama Server Action
-    const authResult = await login(result.data);
+    try {
+      // 1. Chama a rota interna do Next.js (Proxy que define o Cookie HttpOnly)
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(result.data),
+      });
 
-    if (authResult.success) {
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Erro ao fazer login');
+      }
+
+      if (data.token) {
+        localStorage.setItem('auth_token', data.token); // Use o nome que seu api.ts espera
+      }
+
+      // 2. Login bem sucedido!
       toast.success('Login realizado com sucesso!');
-      router.push('/');
-      router.refresh();
-    } else {
-      setErrors({ email: authResult.error || 'Erro ao fazer login' });
-      toast.error(authResult.error || 'Erro ao fazer login');
-    }
 
-    setIsLoading(false);
+      // 3. Solução Híbrida:
+      // O Cookie HttpOnly já foi definido pelo servidor (para o Middleware).
+      // Agora salvamos no localStorage para o Axios (se seu frontend precisar).
+      if (data.token || data.access_token) {
+         localStorage.setItem('auth_token', data.token || data.access_token);
+      }
+
+      // 4. Redirecionamento Forçado
+      // Usamos window.location.href em vez de router.push para garantir 
+      // que os cookies sejam recarregados corretamente pelo navegador.
+      window.location.href = '/'; 
+
+    } catch (error: any) {
+      console.error(error);
+      const errorMessage = error.message || 'Erro ao fazer login';
+      setErrors({ email: errorMessage });
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

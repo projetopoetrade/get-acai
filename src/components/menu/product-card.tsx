@@ -65,14 +65,14 @@ export function ProductCard({ product }: ProductCardProps) {
           <div className="flex flex-col pt-1">
             {product.hasPromo && product.originalPrice && (
               <span className="text-[10px] text-neutral-400 dark:text-neutral-500 line-through">
-                R$ {product.originalPrice.toFixed(2)}
+                R$ {Number(product.originalPrice).toFixed(2)}
               </span>
             )}
             <span 
               className="text-lg font-bold"
               style={{ color: '#9d0094' }}
             >
-              R$ {product.price.toFixed(2)}
+              R$ {Number(product.price || 0).toFixed(2)}
             </span>
           </div>
         </div>

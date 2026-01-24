@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { CartItem } from '@/types/cart';
 import { sanitizeCouponCode } from '@/lib/sanitize';
 import { couponSchema } from '@/lib/validations';
+import { couponsService } from '@/services/coupons';
 
 // =====================================================
 // COMPONENTE DE ITEM DO CARRINHO
@@ -169,8 +170,7 @@ export default function CarrinhoPage() {
 
   const isEmpty = cart.items.length === 0;
 
-  // Validar cupom
-  // TODO: POST /api/coupons/validate
+  // Validar cupom via API
   const handleApplyCoupon = async () => {
     setCouponLoading(true);
     setCouponError('');
@@ -185,32 +185,41 @@ export default function CarrinhoPage() {
       return;
     }
 
-    // Simular validação (substituir por API)
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      // Validar cupom via API
+      const response = await couponsService.validate({
+        code: result.data.code,
+        subtotal: cart.subtotal,
+        productIds: cart.items.map(item => item.product.id),
+      });
 
-    // Mock: cupom "ACAI10" dá 10% de desconto
-    const code = result.data.code;
-    if (code === 'ACAI10') {
-      cart.applyCoupon({
-        code: 'ACAI10',
-        type: 'percentage',
-        value: 10,
-      });
-      toast.success('Cupom aplicado!', { description: '10% de desconto' });
-      setCouponCode('');
-    } else if (code === 'FRETE') {
-      cart.applyCoupon({
-        code: 'FRETE',
-        type: 'freeDelivery',
-        value: 0,
-      });
-      toast.success('Cupom aplicado!', { description: 'Frete grátis!' });
-      setCouponCode('');
-    } else {
-      setCouponError('Cupom inválido ou expirado');
+      if (response.valid && response.coupon && response.discountAmount !== undefined) {
+        // Mapear resposta da API para formato do carrinho
+        const couponType = response.coupon.type === 'percentage' 
+          ? 'percentage' 
+          : response.coupon.type === 'fixed'
+          ? 'fixed'
+          : 'freeDelivery';
+
+        cart.applyCoupon({
+          code: response.coupon.code,
+          type: couponType,
+          value: response.coupon.value,
+          minOrderValue: response.coupon.minOrderValue,
+        });
+
+        toast.success('Cupom aplicado!', { 
+          description: response.message || 'Desconto aplicado com sucesso' 
+        });
+        setCouponCode('');
+      } else {
+        setCouponError(response.message || 'Cupom inválido ou expirado');
+      }
+    } catch (error: any) {
+      setCouponError(error.response?.data?.message || 'Erro ao validar cupom');
+    } finally {
+      setCouponLoading(false);
     }
-
-    setCouponLoading(false);
   };
 
   // Ir para checkout

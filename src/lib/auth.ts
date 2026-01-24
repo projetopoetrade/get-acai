@@ -5,14 +5,23 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { LoginCredentials, RegisterData, User, AuthResponse, AuthResult } from '@/types/auth';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// Normaliza a URL base: garante que termine com /api
+const getApiUrl = () => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  // Remove /api se já existir no final
+  const normalized = baseUrl.replace(/\/api\/?$/, '');
+  // Adiciona /api
+  return `${normalized}/api`;
+};
+
+const API_URL = getApiUrl();
 
 /**
  * Faz login e armazena token em HTTP-only cookie
  */
 export async function login(credentials: LoginCredentials): Promise<AuthResult> {
   try {
-    const res = await fetch(`${API_URL}/api/auth/login`, {
+    const res = await fetch(`${API_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(credentials),
@@ -61,7 +70,7 @@ export async function login(credentials: LoginCredentials): Promise<AuthResult> 
  */
 export async function register(data: RegisterData): Promise<AuthResult> {
   try {
-    const res = await fetch(`${API_URL}/api/auth/register`, {
+    const res = await fetch(`${API_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -112,7 +121,6 @@ export async function logout() {
   const cookieStore = await cookies();
   cookieStore.delete('access_token');
   cookieStore.delete('user');
-  redirect('/');
 }
 
 /**
@@ -166,7 +174,7 @@ export async function updateProfile(data: {
       };
     }
 
-    const res = await fetch(`${API_URL}/api/users/profile`, {
+    const res = await fetch(`${API_URL}/users/profile`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -221,7 +229,7 @@ export async function changePassword(data: {
       };
     }
 
-    const res = await fetch(`${API_URL}/api/users/change-password`, {
+    const res = await fetch(`${API_URL}/users/change-password`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

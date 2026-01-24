@@ -1,405 +1,351 @@
 // src/hooks/useCart.ts
-// =====================================================
-// GERENCIAMENTO DE CARRINHO - Preparado para integração com API
-// =====================================================
-
-'use client';
-
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { Product } from '@/types/product';
-import { 
-  CartItem, 
-  Cart, 
-  ItemCustomization, 
-  AppliedCoupon,
-  SelectedTopping 
-} from '@/types/cart';
+import { CartItem, CartState, Customization } from '@/types/cart';
 
 // =====================================================
-// TIPOS DO STORE
+// HELPERS INTERNOS
 // =====================================================
 
-interface CartStore extends Cart {
-  // Ações do carrinho
-  addItem: (product: Product, quantity?: number, customization?: ItemCustomization) => void;
-  removeItem: (itemId: string) => void;
-  updateItemQuantity: (itemId: string, quantity: number) => void;
-  updateItemCustomization: (itemId: string, customization: ItemCustomization) => void;
-  clearCart: () => void;
+// Gera ID único baseado no produto + customizações para agrupar itens idênticos
+const generateCartItemId = (productId: string, customization?: Customization): string => {
+  if (!customization) return productId;
   
-  // Cupons e descontos
-  applyCoupon: (coupon: AppliedCoupon) => void;
-  removeCoupon: () => void;
+  // Ordenar toppings para que a ordem da seleção não gere IDs diferentes para o mesmo pedido
+  const sortedToppings = [...customization.toppings].sort((a, b) => a.id.localeCompare(b.id));
   
-  // Taxa de entrega
-  setDeliveryFee: (fee: number) => void;
+  // Cria uma string única baseada nos IDs e quantidades
+  const toppingsString = sortedToppings.map(t => `${t.id}:${t.quantity}:${t.isFree}`).join('|');
   
-  // Helpers
-  getItemById: (itemId: string) => CartItem | undefined;
-  calculateTotals: () => void;
-}
+  return `${productId}-${toppingsString}-${customization.wantsCutlery}-${customization.observations || ''}`;
+};
 
-// =====================================================
-// HELPERS
-// =====================================================
-
-// Gerar ID único para item do carrinho
-function generateCartItemId(): string {
-  return `cart-item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-}
-
-// Calcular preço do item com personalizações
-function calculateItemPrice(product: Product, customization?: ItemCustomization): number {
-  let price = product.price;
+// Calcula o preço total de um item (Blindado contra preços em string)
+const calculateItemTotal = (product: Product, quantity: number, customization?: Customization): number => {
+  // BLINDAGEM: Converte para number caso venha string do backend
+  let unitPrice = typeof product.price === 'string' ? parseFloat(product.price) : Number(product.price);
   
-  if (customization?.toppings) {
-    // Soma apenas toppings que não são grátis
-    customization.toppings.forEach(topping => {
-      if (!topping.isFree) {
-        price += topping.unitPrice * topping.quantity;
-      }
-    });
+  if (customization) {
+    const toppingsTotal = customization.toppings.reduce((sum, topping) => {
+      // Se for grátis, preço é 0. Se pago, usa o preço do topping.
+      // BLINDAGEM: Converte preço do topping também
+      const toppingPrice = topping.isFree ? 0 : (typeof topping.price === 'string' ? parseFloat(topping.price) : Number(topping.price));
+      return sum + (toppingPrice * topping.quantity);
+    }, 0);
+    
+    unitPrice += toppingsTotal;
   }
-  
-  return price;
-}
 
-// Calcular desconto baseado no cupom
-function calculateDiscount(subtotal: number, coupon?: AppliedCoupon): number {
-  if (!coupon) return 0;
-  
-  // Verificar valor mínimo
-  if (coupon.minOrderValue && subtotal < coupon.minOrderValue) {
-    return 0;
-  }
-  
-  switch (coupon.type) {
-    case 'percentage':
-      return subtotal * (coupon.value / 100);
-    case 'fixed':
-      return Math.min(coupon.value, subtotal);
-    case 'freeDelivery':
-      return 0; // Desconto aplicado na taxa de entrega
-    default:
-      return 0;
-  }
-}
+  return unitPrice * quantity;
+};
 
 // =====================================================
-// STORE DO CARRINHO
+// STORE ZUSTAND
 // =====================================================
 
-export const useCart = create<CartStore>()(
+export const useCart = create<CartState>()(
   persist(
     (set, get) => ({
-      // Estado inicial
       items: [],
-      subtotal: 0,
+      deliveryFee: 0, 
       discount: 0,
-      deliveryFee: 0,
+      subtotal: 0,
       total: 0,
-      appliedCoupon: undefined,
+      appliedCoupon: null,
       itemCount: 0,
 
-      // Adicionar item ao carrinho
-      addItem: (product, quantity = 1, customization) => {
-        const unitPrice = calculateItemPrice(product, customization);
+      addItem: (product, quantity, customization) => {
+        set((state) => {
+          // BLINDAGEM: Sanitizar preço do produto na entrada
+          const safeProduct = {
+            ...product,
+            price: typeof product.price === 'string' ? parseFloat(product.price) : Number(product.price)
+          };
+
+          const newItemTotal = calculateItemTotal(safeProduct, quantity, customization);
+          const itemId = generateCartItemId(safeProduct.id, customization);
+
+          // Verificar se já existe um item idêntico no carrinho
+          const existingItemIndex = state.items.findIndex(item => item.id === itemId);
+
+          let newItems;
+          if (existingItemIndex > -1) {
+            // Atualizar apenas a quantidade
+            newItems = [...state.items];
+            const existingItem = newItems[existingItemIndex];
+            const newQuantity = existingItem.quantity + quantity;
+            
+            newItems[existingItemIndex] = {
+              ...existingItem,
+              quantity: newQuantity,
+              totalPrice: calculateItemTotal(safeProduct, newQuantity, customization),
+            };
+          } else {
+            // Adicionar novo item
+            const newItem: CartItem = {
+              id: itemId,
+              product: safeProduct,
+              quantity,
+              customization,
+              totalPrice: newItemTotal,
+            };
+            newItems = [...state.items, newItem];
+          }
+
+          // Recalcular totais
+          const subtotal = newItems.reduce((sum, item) => sum + item.totalPrice, 0);
+          
+          return {
+            items: newItems,
+            subtotal,
+            itemCount: newItems.reduce((acc, item) => acc + item.quantity, 0),
+            // O total será ajustado abaixo se houver cupom/frete
+            total: subtotal + state.deliveryFee - state.discount, 
+          };
+        });
         
-        const newItem: CartItem = {
-          id: generateCartItemId(),
-          product,
-          quantity,
-          customization,
-          unitPrice,
-          totalPrice: unitPrice * quantity,
-        };
-
-        set(state => {
-          const newItems = [...state.items, newItem];
-          const subtotal = newItems.reduce((sum, item) => sum + item.totalPrice, 0);
-          const discount = calculateDiscount(subtotal, state.appliedCoupon);
-          const deliveryFee = state.appliedCoupon?.type === 'freeDelivery' ? 0 : state.deliveryFee;
-          
-          return {
-            items: newItems,
-            subtotal,
-            discount,
-            deliveryFee,
-            total: Math.max(0, subtotal - discount + deliveryFee),
-            itemCount: newItems.reduce((sum, item) => sum + item.quantity, 0),
-          };
-        });
-      },
-
-      // Remover item do carrinho
-      removeItem: (itemId) => {
-        set(state => {
-          const newItems = state.items.filter(item => item.id !== itemId);
-          const subtotal = newItems.reduce((sum, item) => sum + item.totalPrice, 0);
-          const discount = calculateDiscount(subtotal, state.appliedCoupon);
-          const deliveryFee = state.appliedCoupon?.type === 'freeDelivery' ? 0 : state.deliveryFee;
-          
-          return {
-            items: newItems,
-            subtotal,
-            discount,
-            deliveryFee,
-            total: Math.max(0, subtotal - discount + deliveryFee),
-            itemCount: newItems.reduce((sum, item) => sum + item.quantity, 0),
-          };
-        });
-      },
-
-      // Atualizar quantidade do item
-      updateItemQuantity: (itemId, quantity) => {
-        if (quantity <= 0) {
-          get().removeItem(itemId);
-          return;
+        // Reaplicar regras de cupom (pois o subtotal mudou)
+        const { appliedCoupon, applyCoupon } = get();
+        if (appliedCoupon) {
+          applyCoupon(appliedCoupon);
+        } else {
+          // Atualizar total sem cupom
+          const state = get();
+          set({ total: state.subtotal + state.deliveryFee });
         }
+      },
 
-        set(state => {
-          const newItems = state.items.map(item => {
+      removeItem: (itemId) => {
+        set((state) => {
+          const newItems = state.items.filter((i) => i.id !== itemId);
+          const subtotal = newItems.reduce((sum, item) => sum + item.totalPrice, 0);
+          
+          // Se esvaziar, reseta tudo
+          if (newItems.length === 0) {
+            return {
+              items: [],
+              subtotal: 0,
+              discount: 0,
+              total: 0,
+              itemCount: 0,
+              appliedCoupon: null,
+              deliveryFee: 0 
+            };
+          }
+
+          return {
+            items: newItems,
+            subtotal,
+            itemCount: newItems.reduce((acc, item) => acc + item.quantity, 0),
+            total: subtotal + state.deliveryFee - state.discount,
+          };
+        });
+        
+        const { appliedCoupon, applyCoupon, items } = get();
+        if (items.length > 0 && appliedCoupon) {
+           applyCoupon(appliedCoupon);
+        }
+      },
+
+      updateItemQuantity: (itemId, quantity) => {
+        set((state) => {
+          const newItems = state.items.map((item) => {
             if (item.id === itemId) {
               return {
                 ...item,
                 quantity,
-                totalPrice: item.unitPrice * quantity,
+                totalPrice: calculateItemTotal(item.product, quantity, item.customization),
               };
             }
             return item;
           });
-          
+
           const subtotal = newItems.reduce((sum, item) => sum + item.totalPrice, 0);
-          const discount = calculateDiscount(subtotal, state.appliedCoupon);
-          const deliveryFee = state.appliedCoupon?.type === 'freeDelivery' ? 0 : state.deliveryFee;
-          
+
           return {
             items: newItems,
             subtotal,
-            discount,
-            deliveryFee,
-            total: Math.max(0, subtotal - discount + deliveryFee),
-            itemCount: newItems.reduce((sum, item) => sum + item.quantity, 0),
+            itemCount: newItems.reduce((acc, item) => acc + item.quantity, 0),
+            total: subtotal + state.deliveryFee - state.discount,
           };
         });
+
+        const { appliedCoupon, applyCoupon } = get();
+        if (appliedCoupon) {
+          applyCoupon(appliedCoupon);
+        } else {
+          const state = get();
+          set({ total: state.subtotal + state.deliveryFee });
+        }
       },
 
-      // Atualizar personalizações do item
-      updateItemCustomization: (itemId, customization) => {
-        set(state => {
-          const newItems = state.items.map(item => {
-            if (item.id === itemId) {
-              const unitPrice = calculateItemPrice(item.product, customization);
-              return {
-                ...item,
-                customization,
-                unitPrice,
-                totalPrice: unitPrice * item.quantity,
-              };
-            }
-            return item;
-          });
-          
-          const subtotal = newItems.reduce((sum, item) => sum + item.totalPrice, 0);
-          const discount = calculateDiscount(subtotal, state.appliedCoupon);
-          const deliveryFee = state.appliedCoupon?.type === 'freeDelivery' ? 0 : state.deliveryFee;
-          
-          return {
-            items: newItems,
-            subtotal,
-            discount,
-            deliveryFee,
-            total: Math.max(0, subtotal - discount + deliveryFee),
-            itemCount: newItems.reduce((sum, item) => sum + item.quantity, 0),
-          };
-        });
-      },
-
-      // Limpar carrinho
       clearCart: () => {
         set({
           items: [],
           subtotal: 0,
           discount: 0,
-          deliveryFee: 0,
           total: 0,
-          appliedCoupon: undefined,
           itemCount: 0,
+          appliedCoupon: null,
+          deliveryFee: 0
         });
       },
 
-      // Aplicar cupom
-      // TODO: Validar cupom com a API: POST /api/coupons/validate
       applyCoupon: (coupon) => {
-        set(state => {
-          const discount = calculateDiscount(state.subtotal, coupon);
-          const deliveryFee = coupon.type === 'freeDelivery' ? 0 : state.deliveryFee;
-          
+        set((state) => {
+          let discountAmount = 0;
+
+          // Validação básica de mínimo
+          if (coupon.minOrderValue && state.subtotal < coupon.minOrderValue) {
+            return state; 
+          }
+
+          if (coupon.type === 'percentage') {
+            discountAmount = (state.subtotal * coupon.value) / 100;
+          } else if (coupon.type === 'fixed') {
+            discountAmount = coupon.value;
+          } else if (coupon.type === 'freeDelivery') {
+             // Abate o valor do frete atual
+             discountAmount = state.deliveryFee; 
+          }
+
+          // Trava de segurança: desconto não pode ser maior que a compra
+          const maxDiscount = state.subtotal + state.deliveryFee;
+          if (discountAmount > maxDiscount) {
+            discountAmount = maxDiscount;
+          }
+
           return {
             appliedCoupon: coupon,
-            discount,
-            deliveryFee,
-            total: Math.max(0, state.subtotal - discount + deliveryFee),
+            discount: discountAmount,
+            total: Math.max(0, state.subtotal + state.deliveryFee - discountAmount),
           };
         });
       },
 
-      // Remover cupom
       removeCoupon: () => {
-        set(state => ({
-          appliedCoupon: undefined,
+        set((state) => ({
+          appliedCoupon: null,
           discount: 0,
-          total: Math.max(0, state.subtotal + state.deliveryFee),
+          total: state.subtotal + state.deliveryFee,
         }));
       },
 
-      // Definir taxa de entrega
-      // TODO: Calcular via API: POST /api/delivery/calculate { address }
       setDeliveryFee: (fee) => {
-        set(state => {
-          const deliveryFee = state.appliedCoupon?.type === 'freeDelivery' ? 0 : fee;
+        set((state) => {
+          // Se tiver cupom de frete grátis, o desconto de frete deve acompanhar o novo valor
+          const isFreeDelivery = state.appliedCoupon?.type === 'freeDelivery';
+          const discount = isFreeDelivery ? fee : state.discount;
+
           return {
-            deliveryFee,
-            total: Math.max(0, state.subtotal - state.discount + deliveryFee),
+            deliveryFee: fee,
+            discount: discount, // Atualiza desconto se for frete grátis
+            total: Math.max(0, state.subtotal + fee - discount)
           };
         });
-      },
+      }
 
-      // Obter item por ID
-      getItemById: (itemId) => {
-        return get().items.find(item => item.id === itemId);
-      },
-
-      // Recalcular totais (útil após sincronização com backend)
-      calculateTotals: () => {
-        set(state => {
-          const subtotal = state.items.reduce((sum, item) => sum + item.totalPrice, 0);
-          const discount = calculateDiscount(subtotal, state.appliedCoupon);
-          const deliveryFee = state.appliedCoupon?.type === 'freeDelivery' ? 0 : state.deliveryFee;
-          
-          return {
-            subtotal,
-            discount,
-            total: Math.max(0, subtotal - discount + deliveryFee),
-            itemCount: state.items.reduce((sum, item) => sum + item.quantity, 0),
-          };
-        });
-      },
     }),
     {
-      name: 'acai-cart-storage',
-      version: 2, // Incrementar ao mudar estrutura
+      name: 'get-acai-cart-storage', // Nome da chave no localStorage
+      storage: createJSONStorage(() => localStorage),
     }
   )
 );
 
 // =====================================================
-// HELPERS PARA CRIAR CUSTOMIZAÇÃO
+// HELPER EXPORTADO: LÓGICA DE NEGÓCIO DE TOPPINGS
 // =====================================================
 
-// Criar objeto de customização a partir das seleções da página de produto
-export function createCustomization(
+export const createCustomization = (
   sizeId: string | undefined,
-  toppingQuantities: Record<string, number>,
-  toppingsData: Array<{ id: string; name: string; price: number; category: string }>,
+  quantities: Record<string, number>,
+  toppingsData: Array<{ id: string; name: string; price: number | string; category: string }>,
   limits: Record<string, number>,
   wantsCutlery: boolean,
   observations: string,
   skippedCategories: string[]
-): ItemCustomization {
-  // Calcular quais toppings são grátis
-  const toppingsByCategory: Record<string, Array<{ topping: typeof toppingsData[0]; qty: number }>> = {};
+): Customization => {
   
-  Object.entries(toppingQuantities).forEach(([toppingId, qty]) => {
-    if (qty > 0) {
-      const topping = toppingsData.find(t => t.id === toppingId);
-      if (topping) {
-        if (!toppingsByCategory[topping.category]) {
-          toppingsByCategory[topping.category] = [];
-        }
-        toppingsByCategory[topping.category].push({ topping, qty });
-      }
-    }
-  });
-
-  const selectedToppings: SelectedTopping[] = [];
-
-  Object.entries(toppingsByCategory).forEach(([category, items]) => {
-    const limit = limits[category] || 0;
-    let freeRemaining = limit;
-
-    // Ordenar por preço (mais baratos primeiro para serem grátis)
-    items.sort((a, b) => a.topping.price - b.topping.price);
-
-    items.forEach(({ topping, qty }) => {
-      for (let i = 0; i < qty; i++) {
-        const isFree = category !== 'extras' && freeRemaining > 0;
-        if (isFree) freeRemaining--;
-
-        selectedToppings.push({
-          toppingId: topping.id,
-          name: topping.name,
-          quantity: 1,
-          unitPrice: topping.price,
-          isFree,
-        });
-      }
+  // 1. Expandir seleções baseadas na quantidade escolhida
+  const toppingsList = toppingsData
+    .filter(t => quantities[t.id] > 0)
+    .flatMap(t => {
+       const qty = quantities[t.id];
+       // Cria X cópias do topping para calcular gratuidade individualmente
+       return Array(qty).fill(null).map(() => ({
+         id: t.id,
+         name: t.name,
+         // Sanitização crucial aqui também
+         price: typeof t.price === 'string' ? parseFloat(t.price) : Number(t.price),
+         category: t.category,
+       }));
     });
+
+  // 2. Agrupar por categoria para aplicar limites
+  const toppingsByCategory: Record<string, typeof toppingsList> = {};
+  toppingsList.forEach(t => {
+    if(!toppingsByCategory[t.category]) toppingsByCategory[t.category] = [];
+    toppingsByCategory[t.category].push(t);
   });
 
-  // Agrupar toppings iguais
-  const groupedToppings: SelectedTopping[] = [];
-  selectedToppings.forEach(t => {
-    const existing = groupedToppings.find(
-      g => g.toppingId === t.toppingId && g.isFree === t.isFree
-    );
-    if (existing) {
-      existing.quantity++;
-    } else {
-      groupedToppings.push({ ...t });
-    }
-  });
+  const finalToppings = [];
+
+  // 3. Aplicar lógica de gratuidade (Limites)
+  for (const cat in toppingsByCategory) {
+     // Ordenar: Toppings mais caros ganham prioridade para serem cobrados? 
+     // REGRA DE NEGÓCIO: Normalmente em açaí, o cliente paga pelo EXCEDENTE.
+     // Se ele escolheu 3 frutas e o limite é 2, cobra-se 1.
+     // O código abaixo assume que os extras são os últimos da lista.
+     
+     // Ordenação: Mais baratos primeiro na lista -> Serão "Grátis".
+     // (Isso beneficia o cliente se todos tiverem preços diferentes? Depende da regra.
+     //  Vamos manter simples: ordem de inserção ou preço).
+     const catToppings = toppingsByCategory[cat]; 
+     
+     const limit = limits[cat] || 0;
+     const isSkipped = skippedCategories.includes(cat);
+     
+     if(isSkipped) continue;
+
+     let usedLimit = 0;
+     
+     // Consolidar itens iguais (ex: 2x Leite em pó)
+     const consolidatedMap = new Map<string, {item: typeof catToppings[0], qty: number, isFree: boolean}>();
+
+     for (const t of catToppings) {
+        let isFree = false;
+        if (cat !== 'extras' && usedLimit < limit) {
+           isFree = true;
+           usedLimit++;
+        }
+
+        // Chave única para agrupamento: ID + Estado (Grátis/Pago)
+        const key = `${t.id}-${isFree}`;
+        
+        if (consolidatedMap.has(key)) {
+            consolidatedMap.get(key)!.qty++;
+        } else {
+            consolidatedMap.set(key, { item: t, qty: 1, isFree });
+        }
+     }
+
+     // Converter mapa de volta para array
+     for (const val of consolidatedMap.values()) {
+         finalToppings.push({
+             id: val.item.id,
+             name: val.item.name,
+             price: val.item.price,
+             quantity: val.qty,
+             isFree: val.isFree
+         });
+     }
+  }
 
   return {
-    sizeId: sizeId as any,
-    toppings: groupedToppings,
+    toppings: finalToppings,
     wantsCutlery,
-    observations: observations || undefined,
-    skippedCategories: skippedCategories.length > 0 ? skippedCategories : undefined,
+    observations
   };
-}
-
-/*
-INTEGRAÇÃO COM API DE PEDIDOS:
-
-// Criar pedido
-const createOrder = async () => {
-  const cart = useCart.getState();
-  
-  const payload: CreateOrderPayload = {
-    items: cart.items.map(item => ({
-      productId: item.product.id,
-      quantity: item.quantity,
-      customization: item.customization,
-    })),
-    customer: customerInfo,
-    deliveryType: 'delivery',
-    deliveryAddress: address,
-    paymentMethod: 'pix',
-    couponCode: cart.appliedCoupon?.code,
-  };
-
-  const response = await fetch('/api/orders', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-  
-  const { order, pixCode } = await response.json();
-  
-  // Limpar carrinho após criar pedido
-  cart.clearCart();
-  
-  return { order, pixCode };
 };
-*/

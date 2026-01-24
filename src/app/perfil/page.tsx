@@ -1,8 +1,10 @@
 // src/app/perfil/page.tsx
-import { getCurrentUser } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import { getCurrentUser, logout } from '@/lib/auth';
 import { Header } from '@/components/layout/header';
 import { ProfileForm } from '@/components/profile/profile-form';
 import { ChangePasswordForm } from '@/components/profile/change-password-form';
+import { LogoutButton } from '@/components/profile/logout-button';
 
 export default async function ProfilePage() {
   let user = await getCurrentUser();
@@ -21,7 +23,7 @@ export default async function ProfilePage() {
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
 
-      <div className="flex-1 px-4 py-8 pb-24"> {/* MUDANÇA AQUI: pb-24 = padding-bottom 6rem */}
+      <div className="flex-1 px-4 py-8 pb-24">
         <div className="max-w-2xl mx-auto space-y-6">
           {/* Banner de desenvolvimento */}
           {process.env.NODE_ENV === 'development' && (
@@ -54,6 +56,18 @@ export default async function ProfilePage() {
             </p>
 
             <ChangePasswordForm />
+          </div>
+
+          {/* Botão de Logout */}
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 shadow-sm border border-neutral-200 dark:border-neutral-800">
+            <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
+              Sair da Conta
+            </h2>
+            <p className="text-neutral-600 dark:text-neutral-400 mb-6">
+              Encerrar sua sessão neste dispositivo
+            </p>
+
+            <LogoutButton />
           </div>
         </div>
       </div>

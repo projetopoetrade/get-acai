@@ -1,28 +1,39 @@
 // src/app/produto/[id]/page.tsx
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ArrowLeft, Minus, Plus, Check, UtensilsCrossed, Cherry, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getProductById, getSizeVariants, SIZE_LABELS } from '@/data/products';
+import { productsService } from '@/services/products';
+import { toppingsService, type Topping } from '@/services/toppings';
 import { useCart, createCustomization } from '@/hooks/useCart';
 import { toast } from 'sonner';
-import {
-  getToppingLimit,
-  TOPPING_CATEGORY_LABELS,
-  getToppingsByCategory,
-  getAllToppingCategories,
-  type Topping,
-  type ToppingCategory,
-  TOPPINGS,
-} from '@/data/toppings-config';
 import { ToppingItem } from '@/components/produto/topping-item';
 import { Product } from '@/types/product';
 import { sanitizeObservations } from '@/lib/sanitize';
+import type { ToppingCategory } from '@/data/toppings-config';
+
+// Labels das categorias (fallback se não vier da API)
+const TOPPING_CATEGORY_LABELS: Record<ToppingCategory, string> = {
+  frutas: 'Frutas',
+  complementos: 'Complementos',
+  cremes: 'Cremes',
+  caldas: 'Caldas',
+  extras: 'Extras Premium',
+};
+
+const ALL_TOPPING_CATEGORIES: ToppingCategory[] = ['frutas', 'complementos', 'cremes', 'caldas', 'extras'];
+
+// Labels de tamanhos
+const SIZE_LABELS: Record<string, { name: string; ml: number }> = {
+  pequeno: { name: 'Pequeno', ml: 300 },
+  medio: { name: 'Médio', ml: 500 },
+  grande: { name: 'Grande', ml: 700 },
+};
 
 export default function ProductPage() {
   const params = useParams();
@@ -30,34 +41,247 @@ export default function ProductPage() {
   const { addItem } = useCart();
 
   const productId = params.id as string;
-  const initialProduct = getProductById(productId);
-
-  // Variantes de tamanho do produto
-  const sizeVariants = initialProduct ? getSizeVariants(initialProduct) : [];
-  const hasSizeVariants = sizeVariants.length > 1;
+  
+  // Estados de dados da API
+  const [product, setProduct] = useState<Product | null>(null);
+  const [sizeVariants, setSizeVariants] = useState<Product[]>([]);
+  const [toppings, setToppings] = useState<Topping[]>([]);
+  const [toppingLimits, setToppingLimits] = useState<Record<string, Record<ToppingCategory, number>>>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Produto selecionado (pode mudar ao trocar tamanho)
   const [selectedProductId, setSelectedProductId] = useState(productId);
-  const selectedProduct = getProductById(selectedProductId) || initialProduct;
+  const selectedProduct = sizeVariants.find(p => p.id === selectedProductId) || product;
 
   const [toppingQuantities, setToppingQuantities] = useState<Record<string, number>>({});
   const [skippedCategories, setSkippedCategories] = useState<Record<ToppingCategory, boolean>>({} as Record<ToppingCategory, boolean>);
-  const [wantsCutlery, setWantsCutlery] = useState<boolean | null>(null); // null = não escolhido, true/false = escolhido
+  const [wantsCutlery, setWantsCutlery] = useState<boolean | null>(null);
   const [observations, setObservations] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [imageError, setImageError] = useState(false);
 
+  // Carregar dados da API
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const isDev = process.env.NODE_ENV === 'development';
+        
+        if (isDev) {
+          console.log('[ProductPage] Carregando produto:', productId);
+        }
+
+        // Carregar produto
+        const productData = await productsService.getOne(productId);
+        
+        if (isDev) {
+          console.log('[ProductPage] Produto carregado:', productData);
+        }
+        
+        // Mapear produto para formato esperado
+        const mappedProduct: Product = {
+          id: productData.id,
+          name: productData.name,
+          description: productData.description || '',
+          price: typeof productData.price === 'string' ? parseFloat(productData.price) : Number(productData.price) || 0,
+          originalPrice: productData.originalPrice ? (typeof productData.originalPrice === 'string' ? parseFloat(productData.originalPrice) : Number(productData.originalPrice)) : undefined,
+          category: (productData.categoryId || (productData as any).category?.id || 'monte-seu').toLowerCase(),
+          imageUrl: productData.imageUrl || '/placeholder-product.jpg',
+          available: productData.available ?? true,
+          isCombo: (productData as any).isCombo,
+          isCustomizable: (productData as any).isCustomizable ?? true,
+          hasPromo: (productData as any).hasPromo,
+          promoText: (productData as any).promoText,
+          sizeId: (() => {
+            const size = (productData as any).size;
+            if (!size) return undefined;
+            
+            // Tentar mapear pelo name primeiro
+            const sizeName = (size.name || '').toLowerCase();
+            if (sizeName.includes('pequeno') || sizeName.includes('300')) return 'pequeno';
+            if (sizeName.includes('medio') || sizeName.includes('médio') || sizeName.includes('500')) return 'medio';
+            if (sizeName.includes('grande') || sizeName.includes('700')) return 'grande';
+            
+            // Tentar mapear pelo ID (pode ser UUID ou string)
+            const sizeId = (size.id || '').toLowerCase();
+            if (sizeId.includes('pequeno') || sizeId.includes('300')) return 'pequeno';
+            if (sizeId.includes('medio') || sizeId.includes('médio') || sizeId.includes('500')) return 'medio';
+            if (sizeId.includes('grande') || sizeId.includes('700')) return 'grande';
+            
+            return undefined;
+          })(),
+          sizeGroup: (productData as any).sizeGroup,
+        };
+
+        setProduct(mappedProduct);
+        setSelectedProductId(productId);
+
+        // Carregar variantes de tamanho (se tiver sizeGroup)
+        if (mappedProduct.sizeGroup) {
+          try {
+            const allProducts = await productsService.getAll();
+            const variants = allProducts
+              .filter(p => 
+                (p as any).sizeGroup === mappedProduct.sizeGroup && 
+                p.id !== productId
+              )
+              .map(p => ({
+                ...p,
+                sizeId: (() => {
+                  const size = (p as any).size;
+                  if (!size) return undefined;
+                  const sizeName = (size.name || '').toLowerCase();
+                  if (sizeName.includes('pequeno') || sizeName.includes('300')) return 'pequeno';
+                  if (sizeName.includes('medio') || sizeName.includes('médio') || sizeName.includes('500')) return 'medio';
+                  if (sizeName.includes('grande') || sizeName.includes('700')) return 'grande';
+                  return undefined;
+                })(),
+              })) as Product[];
+            setSizeVariants([mappedProduct, ...variants]);
+          } catch {
+            setSizeVariants([mappedProduct]);
+          }
+        } else {
+          setSizeVariants([mappedProduct]);
+        }
+
+        // Carregar toppings
+        if (isDev) {
+          console.log('[ProductPage] Carregando toppings...');
+        }
+        const toppingsData = await toppingsService.getAll();
+        
+        if (isDev) {
+          console.log('[ProductPage] Toppings carregados:', toppingsData.length, 'itens');
+        }
+        
+        setToppings(toppingsData);
+
+        // Carregar limites de toppings
+        try {
+          if (isDev) {
+            console.log('[ProductPage] Carregando limites de toppings para produto:', productId);
+          }
+          const limitsData = await toppingsService.getProductLimits(productId);
+          
+          if (isDev) {
+            console.log('[ProductPage] Limites carregados:', limitsData);
+          }
+          const limitsMap: Record<string, Record<ToppingCategory, number>> = {};
+          
+          limitsData.forEach(limit => {
+            if (!limitsMap[limit.sizeId]) {
+              limitsMap[limit.sizeId] = {
+                frutas: 0,
+                complementos: 0,
+                cremes: 0,
+                caldas: 0,
+                extras: 0,
+              };
+            }
+            // Mapear categoria da API para formato interno
+            const category = limit.toppingCategoryName.toLowerCase();
+            if (category.includes('fruta')) limitsMap[limit.sizeId].frutas = limit.maxQuantity;
+            else if (category.includes('complemento')) limitsMap[limit.sizeId].complementos = limit.maxQuantity;
+            else if (category.includes('creme')) limitsMap[limit.sizeId].cremes = limit.maxQuantity;
+            else if (category.includes('calda')) limitsMap[limit.sizeId].caldas = limit.maxQuantity;
+            else if (category.includes('extra') || category.includes('premium')) limitsMap[limit.sizeId].extras = limit.maxQuantity;
+          });
+          
+          setToppingLimits(limitsMap);
+        } catch {
+          // Se não conseguir carregar limites, usar padrão
+          setToppingLimits({});
+        }
+
+      } catch (err: any) {
+        console.error('[ProductPage] Erro ao carregar dados:', err);
+        console.error('[ProductPage] Erro completo:', {
+          message: err.message,
+          response: err.response?.data,
+          status: err.response?.status,
+          statusText: err.response?.statusText,
+          url: err.config?.url,
+          params: err.config?.params,
+        });
+        
+        // Extrair mensagem de erro do backend
+        let errorMessage = 'Erro ao carregar produto';
+        if (err.response?.data) {
+          // NestJS pode retornar message como array ou string
+          if (Array.isArray(err.response.data.message)) {
+            errorMessage = err.response.data.message.join(', ');
+          } else if (typeof err.response.data.message === 'string') {
+            errorMessage = err.response.data.message;
+          } else if (err.response.data.error) {
+            errorMessage = typeof err.response.data.error === 'string' 
+              ? err.response.data.error 
+              : JSON.stringify(err.response.data.error);
+          }
+        } else if (err.message) {
+          errorMessage = err.message;
+        }
+        
+        // Sempre logar erros (importante para debug)
+        console.error('[ProductPage] Mensagem de erro final:', errorMessage);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[ProductPage] Response data completo:', err.response?.data);
+        }
+        setError(errorMessage); // Sempre string
+        
+        toast.error('Erro ao carregar produto', {
+          description: errorMessage,
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [productId]);
+
+  // Funções auxiliares usando dados da API
+  const getToppingsByCategory = (category: ToppingCategory): Topping[] => {
+    return toppings
+      .filter(t => t.category === category && (t.inStock || t.available))
+      .sort((a, b) => a.order - b.order);
+  };
+
+  const getToppingLimit = (sizeId: string | undefined, category: ToppingCategory): number => {
+    if (!sizeId) return 0;
+    // Tentar buscar limite específico do tamanho
+    const sizeLimits = toppingLimits[sizeId];
+    if (sizeLimits) {
+      return sizeLimits[category] || 0;
+    }
+    // Fallback: limites padrão (pode vir da API ou usar valores padrão)
+    const defaultLimits: Record<ToppingCategory, number> = {
+      frutas: sizeId === 'pequeno' ? 2 : sizeId === 'medio' ? 3 : 4,
+      complementos: sizeId === 'pequeno' ? 2 : sizeId === 'medio' ? 3 : 4,
+      cremes: sizeId === 'pequeno' ? 1 : sizeId === 'medio' ? 1 : 2,
+      caldas: sizeId === 'pequeno' ? 1 : sizeId === 'medio' ? 2 : 2,
+      extras: 0,
+    };
+    return defaultLimits[category] || 0;
+  };
+
   // Tamanho atual do produto (para calcular limites)
   const currentSizeId = selectedProduct?.sizeId;
+  const hasSizeVariants = sizeVariants.length > 1;
 
   // Calcular preço total
   const totalPrice = useMemo(() => {
     if (!selectedProduct) return 0;
 
-    let price = selectedProduct.price;
+    let price = typeof selectedProduct.price === 'number' 
+      ? selectedProduct.price 
+      : Number(selectedProduct.price) || 0;
 
     // Adicionar preço dos toppings extras (além do limite grátis)
-    getAllToppingCategories().forEach((category) => {
+    ALL_TOPPING_CATEGORIES.forEach((category) => {
       const categoryToppings = getToppingsByCategory(category);
       const freeLimit = getToppingLimit(currentSizeId, category);
       const isExtras = category === 'extras';
@@ -94,7 +318,7 @@ export default function ProductPage() {
     });
 
     return price * quantity;
-  }, [selectedProduct, toppingQuantities, quantity, currentSizeId]);
+  }, [selectedProduct, toppingQuantities, quantity, currentSizeId, toppings]);
 
   // Validação: verificar se todos os campos obrigatórios foram preenchidos
   const validateForm = (): { isValid: boolean; errors: string[] } => {
@@ -154,14 +378,61 @@ export default function ProductPage() {
     }
 
     return errors.length === 0;
-  }, [toppingQuantities, skippedCategories, wantsCutlery, currentSizeId]);
+  }, [toppingQuantities, skippedCategories, wantsCutlery, currentSizeId, toppings]);
 
-  if (!initialProduct || !selectedProduct) {
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#9d0094] mx-auto mb-4"></div>
+          <p className="text-neutral-500">Carregando produto...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !product || !selectedProduct) {
+    const errorMessage = Array.isArray(error) 
+      ? error.join(', ') 
+      : typeof error === 'string' 
+        ? error 
+        : 'O produto que você procura não existe';
+    
+    const isDev = process.env.NODE_ENV === 'development';
+    
+    if (isDev) {
+      console.error('[ProductPage] Estado de erro:', {
+        error,
+        errorMessage,
+        hasProduct: !!product,
+        hasSelectedProduct: !!selectedProduct,
+        productId,
+      });
+    }
+    
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-xl font-bold mb-2">Produto não encontrado</h1>
-          <Button onClick={() => router.push('/')}>Voltar ao menu</Button>
+          <p className="text-neutral-500 mb-4">{errorMessage}</p>
+          {process.env.NODE_ENV === 'development' && error && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4 text-left max-w-md">
+              <p className="text-sm font-mono text-red-600 dark:text-red-400 break-all">
+                {errorMessage}
+              </p>
+              <details className="mt-2 text-xs">
+                <summary className="cursor-pointer text-red-500">Detalhes técnicos</summary>
+                <pre className="mt-2 text-xs overflow-auto">
+                  {JSON.stringify({ error, product: !!product, selectedProduct: !!selectedProduct }, null, 2)}
+                </pre>
+              </details>
+            </div>
+          )}
+          <Button onClick={() => router.push('/')} style={{ backgroundColor: '#9d0094' }} className="text-white">
+            Voltar ao menu
+          </Button>
         </div>
       </div>
     );
@@ -237,8 +508,9 @@ export default function ProductPage() {
       });
       return;
     }
-    // Criar objeto de customização com todas as seleções
-    const toppingsData = TOPPINGS.map(t => ({
+    
+    // Criar objeto de customização com todas as seleções usando dados da API
+    const toppingsData = toppings.map(t => ({
       id: t.id,
       name: t.name,
       price: t.price,
@@ -246,7 +518,7 @@ export default function ProductPage() {
     }));
 
     const limits: Record<string, number> = {};
-    getAllToppingCategories().forEach(cat => {
+    ALL_TOPPING_CATEGORIES.forEach(cat => {
       limits[cat] = getToppingLimit(currentSizeId, cat);
     });
 
@@ -268,7 +540,7 @@ export default function ProductPage() {
     addItem(selectedProduct, quantity, customization);
 
     // Mensagem de confirmação
-    const selectedToppingNames = TOPPINGS
+    const selectedToppingNames = toppings
       .filter((t) => (toppingQuantities[t.id] || 0) > 0)
       .map((t) => {
         const qty = toppingQuantities[t.id];
@@ -297,7 +569,7 @@ export default function ProductPage() {
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="font-semibold text-lg truncate">{initialProduct.name}</h1>
+          <h1 className="font-semibold text-lg truncate">{product.name}</h1>
         </div>
       </header>
 
@@ -341,14 +613,14 @@ export default function ProductPage() {
             <div className="mt-3 flex items-baseline gap-2">
               {selectedProduct.hasPromo && selectedProduct.originalPrice && (
                 <span className="text-sm text-neutral-400 line-through">
-                  R$ {selectedProduct.originalPrice.toFixed(2)}
+                  R$ {Number(selectedProduct.originalPrice).toFixed(2)}
                 </span>
               )}
               <span 
                 className="text-2xl font-bold"
                 style={{ color: '#9d0094' }}
               >
-                R$ {selectedProduct.price.toFixed(2)}
+                R$ {Number(selectedProduct.price || 0).toFixed(2)}
               </span>
             </div>
           </CardContent>
@@ -364,7 +636,11 @@ export default function ProductPage() {
             <div className="space-y-2">
               {sizeVariants.map((variant) => {
                 const isSelected = selectedProductId === variant.id;
-                const sizeInfo = variant.sizeId ? SIZE_LABELS[variant.sizeId] : null;
+                const sizeInfo = variant.sizeId && SIZE_LABELS[variant.sizeId] 
+                  ? SIZE_LABELS[variant.sizeId] 
+                  : variant.sizeId 
+                    ? { name: (variant as any).size?.name || 'Tamanho', ml: 0 }
+                    : null;
 
                 return (
                   <button
@@ -406,7 +682,7 @@ export default function ProductPage() {
         )}
 
         {/* Acompanhamentos */}
-        {getAllToppingCategories().map((category) => {
+        {ALL_TOPPING_CATEGORIES.map((category) => {
           const toppings = getToppingsByCategory(category);
           const selectedCount = getSelectedCountByCategory(category);
           const limit = getToppingLimit(currentSizeId, category);
