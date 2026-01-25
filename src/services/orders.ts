@@ -26,6 +26,7 @@ export interface Order {
   confirmedAt?: string;
   estimatedDeliveryTime?: string;
   deliveredAt?: string;
+  changeFor?: number | string;
 }
 
 export interface OrderItem {
@@ -107,5 +108,25 @@ export const ordersService = {
   cancelOrder: async (orderId: string): Promise<Order> => {
     const response = await api.patch<Order>(`/orders/${orderId}/cancel`);
     return response.data;
+  },
+
+
+  // --- MÉTODOS DE ADMIN ---
+
+  // Buscar todos os pedidos (com filtros opcionais)
+  getAllOrders: async (params?: { status?: string }): Promise<Order[]> => {
+    const response = await api.get<Order[]>('/orders/admin/all', { params });
+    return response.data;
+  },
+
+  // Atualizar status do pedido
+  updateStatus: async (id: string, status: string): Promise<Order> => {
+    const response = await api.patch<Order>(`/orders/${id}/status`, { status });
+    return response.data;
+  },
+  
+  // Cancelar pedido como admin
+  cancelByAdmin: async (id: string): Promise<void> => {
+    await api.delete(`/orders/admin/${id}/cancel`);
   }
 };

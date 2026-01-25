@@ -17,12 +17,14 @@ import {
   MapPin,
   Receipt,
   Ban,
-  Loader2
+  Loader2,
+  Star
 } from 'lucide-react';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { ordersService, Order } from '@/services/orders'; // Importando Order e Service juntos
 import { toast } from 'sonner';
+import { ReviewForm } from '@/components/reviews/review-form';
 
 // =====================================================
 // CONFIGURAÇÃO - WhatsApp
@@ -136,6 +138,7 @@ interface OrderCardProps {
 
 function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [reviewingProductId, setReviewingProductId] = useState<string | null>(null);
   
   const statusKey = order.status.toLowerCase();
   const statusConfig = STATUS_CONFIG[statusKey] || STATUS_CONFIG['pending'];
@@ -150,6 +153,8 @@ function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
     'ready', 
     'delivering'
   ].includes(statusKey);
+
+  const isDelivered = statusKey === 'delivered';
 
   // ✅ CORREÇÃO: Fallback seguro para o endereço
   const address = order.address;
@@ -324,7 +329,75 @@ function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
              </div>
           </div>
 
-          {/* 5. Ações (Botões) */}
+          {/* 5. Avaliar Produtos (apenas para pedidos entregues) */}
+          {isDelivered && order.items.length > 0 && (
+            <div className="border-t border-neutral-100 dark:border-neutral-800 pt-4">
+              <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-3 flex items-center gap-2">
+                <Star className="w-4 h-4" />
+                Avaliar Produtos
+              </h4>
+              <div className="space-y-3">
+                {order.items.map((item, idx) => {
+                  const productId = item.product?.id || item.productId;
+                  const productName = item.product?.name || item.productName || 'Produto';
+                  
+                  if (!productId) return null;
+
+                  const isReviewing = reviewingProductId === productId;
+
+                  return (
+                    <div key={idx} className="border-2 border-neutral-200 dark:border-neutral-800 rounded-lg p-3">
+                      {!isReviewing ? (
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-sm text-neutral-900 dark:text-neutral-100">
+                              {item.quantity}x {productName}
+                            </p>
+                            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+                              Como foi sua experiência?
+                            </p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setReviewingProductId(productId)}
+                            className="flex items-center gap-2"
+                          >
+                            <Star className="w-4 h-4" />
+                            Avaliar
+                          </Button>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <p className="font-medium text-sm text-neutral-900 dark:text-neutral-100">
+                              Avaliar: {productName}
+                            </p>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setReviewingProductId(null)}
+                              className="h-6 w-6 p-0"
+                            >
+                              ×
+                            </Button>
+                          </div>
+                          <ReviewForm
+                            productId={productId}
+                            productName={productName}
+                            orderId={order.id}
+                            onSuccess={() => setReviewingProductId(null)}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 6. Ações (Botões) */}
           <div className="flex flex-col gap-2 pt-2">
              <a
                href={getWhatsAppLink(order.orderNumber || order.id.substring(0, 8))}

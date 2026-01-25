@@ -1,13 +1,13 @@
 // src/components/menu/highlights-carousel.tsx
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Cherry } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { getHighlightedProducts } from '@/data/products';
-import { HighlightType } from '@/types/product';
+import { productsService } from '@/services/products';
+import { Product, HighlightType } from '@/types/product';
 
 // Cores por tipo de destaque
 const HIGHLIGHT_STYLES: Record<HighlightType, { bg: string; color: string }> = {
@@ -41,8 +41,26 @@ function HighlightImage({ src, alt }: { src: string; alt: string }) {
 
 export function HighlightsCarousel() {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const highlights = getHighlightedProducts();
+  const [highlights, setHighlights] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    const loadHighlights = async () => {
+      try {
+        const data = await productsService.getHighlights();
+        // Filtra apenas produtos disponíveis
+        const availableHighlights = data.filter(p => p.available);
+        setHighlights(availableHighlights);
+      } catch (error) {
+        console.error('Erro ao carregar destaques:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadHighlights();
+  }, []);
+
+  if (loading) return null;
   if (highlights.length === 0) return null;
 
   const scroll = (direction: 'left' | 'right') => {

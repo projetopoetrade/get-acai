@@ -45,6 +45,7 @@ export interface ToppingsConfig {
   categoryOrder: string[];
 }
 
+
 // Mapear categoria da API para formato interno
 const mapCategoryFromAPI = (category: any): 'frutas' | 'complementos' | 'cremes' | 'caldas' | 'extras' => {
   if (typeof category === 'string') {
@@ -62,6 +63,8 @@ const mapCategoryFromAPI = (category: any): 'frutas' | 'complementos' | 'cremes'
 };
 
 export const toppingsService = {
+
+  
   /**
    * Busca todos os toppings disponíveis
    * Nota: Não passamos availableOnly como parâmetro porque o backend espera boolean

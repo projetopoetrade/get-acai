@@ -13,7 +13,7 @@ import { toppingsService, type Topping } from '@/services/toppings';
 import { useCart, createCustomization } from '@/hooks/useCart';
 import { toast } from 'sonner';
 import { ToppingItem } from '@/components/produto/topping-item';
-import { Product } from '@/types/product';
+import { Product, ProductCategory } from '@/types/product';
 import { sanitizeObservations } from '@/lib/sanitize';
 import type { ToppingCategory } from '@/data/toppings-config';
 
@@ -41,18 +41,13 @@ export default function ProductPage() {
   const { addItem } = useCart();
 
   const productId = params.id as string;
-  
+
   // Estados de dados da API
   const [product, setProduct] = useState<Product | null>(null);
-  const [sizeVariants, setSizeVariants] = useState<Product[]>([]);
   const [toppings, setToppings] = useState<Topping[]>([]);
   const [toppingLimits, setToppingLimits] = useState<Record<string, Record<ToppingCategory, number>>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Produto selecionado (pode mudar ao trocar tamanho)
-  const [selectedProductId, setSelectedProductId] = useState(productId);
-  const selectedProduct = sizeVariants.find(p => p.id === selectedProductId) || product;
 
   const [toppingQuantities, setToppingQuantities] = useState<Record<string, number>>({});
   const [skippedCategories, setSkippedCategories] = useState<Record<ToppingCategory, boolean>>({} as Record<ToppingCategory, boolean>);
@@ -69,18 +64,18 @@ export default function ProductPage() {
         setError(null);
 
         const isDev = process.env.NODE_ENV === 'development';
-        
+
         if (isDev) {
           console.log('[ProductPage] Carregando produto:', productId);
         }
 
         // Carregar produto
         const productData = await productsService.getOne(productId);
-        
+
         if (isDev) {
           console.log('[ProductPage] Produto carregado:', productData);
         }
-        
+
         // Mapear produto para formato esperado
         const mappedProduct: Product = {
           id: productData.id,
@@ -88,7 +83,16 @@ export default function ProductPage() {
           description: productData.description || '',
           price: typeof productData.price === 'string' ? parseFloat(productData.price) : Number(productData.price) || 0,
           originalPrice: productData.originalPrice ? (typeof productData.originalPrice === 'string' ? parseFloat(productData.originalPrice) : Number(productData.originalPrice)) : undefined,
-          category: (productData.categoryId || (productData as any).category?.id || 'monte-seu').toLowerCase(),
+          // Para esta versão segura:
+          category: (() => {
+            const cat = productData.category;
+            // Se for string, usa ela. Se for objeto, pega o .name. Se não, fallback.
+            const categoryName = typeof cat === 'string'
+              ? cat
+              : (cat as any)?.name || 'monte-seu';
+
+            return categoryName.toLowerCase() as ProductCategory;
+          })(),
           imageUrl: productData.imageUrl || '/placeholder-product.jpg',
           available: productData.available ?? true,
           isCombo: (productData as any).isCombo,
@@ -98,66 +102,36 @@ export default function ProductPage() {
           sizeId: (() => {
             const size = (productData as any).size;
             if (!size) return undefined;
-            
+
             // Tentar mapear pelo name primeiro
             const sizeName = (size.name || '').toLowerCase();
             if (sizeName.includes('pequeno') || sizeName.includes('300')) return 'pequeno';
             if (sizeName.includes('medio') || sizeName.includes('médio') || sizeName.includes('500')) return 'medio';
             if (sizeName.includes('grande') || sizeName.includes('700')) return 'grande';
-            
+
             // Tentar mapear pelo ID (pode ser UUID ou string)
             const sizeId = (size.id || '').toLowerCase();
             if (sizeId.includes('pequeno') || sizeId.includes('300')) return 'pequeno';
             if (sizeId.includes('medio') || sizeId.includes('médio') || sizeId.includes('500')) return 'medio';
             if (sizeId.includes('grande') || sizeId.includes('700')) return 'grande';
-            
+
             return undefined;
           })(),
           sizeGroup: (productData as any).sizeGroup,
         };
 
         setProduct(mappedProduct);
-        setSelectedProductId(productId);
-
-        // Carregar variantes de tamanho (se tiver sizeGroup)
-        if (mappedProduct.sizeGroup) {
-          try {
-            const allProducts = await productsService.getAll();
-            const variants = allProducts
-              .filter(p => 
-                (p as any).sizeGroup === mappedProduct.sizeGroup && 
-                p.id !== productId
-              )
-              .map(p => ({
-                ...p,
-                sizeId: (() => {
-                  const size = (p as any).size;
-                  if (!size) return undefined;
-                  const sizeName = (size.name || '').toLowerCase();
-                  if (sizeName.includes('pequeno') || sizeName.includes('300')) return 'pequeno';
-                  if (sizeName.includes('medio') || sizeName.includes('médio') || sizeName.includes('500')) return 'medio';
-                  if (sizeName.includes('grande') || sizeName.includes('700')) return 'grande';
-                  return undefined;
-                })(),
-              })) as Product[];
-            setSizeVariants([mappedProduct, ...variants]);
-          } catch {
-            setSizeVariants([mappedProduct]);
-          }
-        } else {
-          setSizeVariants([mappedProduct]);
-        }
 
         // Carregar toppings
         if (isDev) {
           console.log('[ProductPage] Carregando toppings...');
         }
         const toppingsData = await toppingsService.getAll();
-        
+
         if (isDev) {
           console.log('[ProductPage] Toppings carregados:', toppingsData.length, 'itens');
         }
-        
+
         setToppings(toppingsData);
 
         // Carregar limites de toppings
@@ -166,12 +140,12 @@ export default function ProductPage() {
             console.log('[ProductPage] Carregando limites de toppings para produto:', productId);
           }
           const limitsData = await toppingsService.getProductLimits(productId);
-          
+
           if (isDev) {
             console.log('[ProductPage] Limites carregados:', limitsData);
           }
           const limitsMap: Record<string, Record<ToppingCategory, number>> = {};
-          
+
           limitsData.forEach(limit => {
             if (!limitsMap[limit.sizeId]) {
               limitsMap[limit.sizeId] = {
@@ -190,7 +164,7 @@ export default function ProductPage() {
             else if (category.includes('calda')) limitsMap[limit.sizeId].caldas = limit.maxQuantity;
             else if (category.includes('extra') || category.includes('premium')) limitsMap[limit.sizeId].extras = limit.maxQuantity;
           });
-          
+
           setToppingLimits(limitsMap);
         } catch {
           // Se não conseguir carregar limites, usar padrão
@@ -207,7 +181,7 @@ export default function ProductPage() {
           url: err.config?.url,
           params: err.config?.params,
         });
-        
+
         // Extrair mensagem de erro do backend
         let errorMessage = 'Erro ao carregar produto';
         if (err.response?.data) {
@@ -217,21 +191,21 @@ export default function ProductPage() {
           } else if (typeof err.response.data.message === 'string') {
             errorMessage = err.response.data.message;
           } else if (err.response.data.error) {
-            errorMessage = typeof err.response.data.error === 'string' 
-              ? err.response.data.error 
+            errorMessage = typeof err.response.data.error === 'string'
+              ? err.response.data.error
               : JSON.stringify(err.response.data.error);
           }
         } else if (err.message) {
           errorMessage = err.message;
         }
-        
+
         // Sempre logar erros (importante para debug)
         console.error('[ProductPage] Mensagem de erro final:', errorMessage);
         if (process.env.NODE_ENV === 'development') {
           console.error('[ProductPage] Response data completo:', err.response?.data);
         }
         setError(errorMessage); // Sempre string
-        
+
         toast.error('Erro ao carregar produto', {
           description: errorMessage,
         });
@@ -269,16 +243,15 @@ export default function ProductPage() {
   };
 
   // Tamanho atual do produto (para calcular limites)
-  const currentSizeId = selectedProduct?.sizeId;
-  const hasSizeVariants = sizeVariants.length > 1;
+  const currentSizeId = product?.sizeId;
 
   // Calcular preço total
   const totalPrice = useMemo(() => {
-    if (!selectedProduct) return 0;
+    if (!product) return 0;
 
-    let price = typeof selectedProduct.price === 'number' 
-      ? selectedProduct.price 
-      : Number(selectedProduct.price) || 0;
+    let price = typeof product.price === 'number'
+      ? product.price
+      : Number(product.price) || 0;
 
     // Adicionar preço dos toppings extras (além do limite grátis)
     ALL_TOPPING_CATEGORIES.forEach((category) => {
@@ -318,7 +291,7 @@ export default function ProductPage() {
     });
 
     return price * quantity;
-  }, [selectedProduct, toppingQuantities, quantity, currentSizeId, toppings]);
+  }, [product, toppingQuantities, quantity, currentSizeId, toppings]);
 
   // Validação: verificar se todos os campos obrigatórios foram preenchidos
   const validateForm = (): { isValid: boolean; errors: string[] } => {
@@ -393,25 +366,24 @@ export default function ProductPage() {
   }
 
   // Error state
-  if (error || !product || !selectedProduct) {
-    const errorMessage = Array.isArray(error) 
-      ? error.join(', ') 
-      : typeof error === 'string' 
-        ? error 
+  if (error || !product) {
+    const errorMessage = Array.isArray(error)
+      ? error.join(', ')
+      : typeof error === 'string'
+        ? error
         : 'O produto que você procura não existe';
-    
+
     const isDev = process.env.NODE_ENV === 'development';
-    
+
     if (isDev) {
       console.error('[ProductPage] Estado de erro:', {
         error,
         errorMessage,
         hasProduct: !!product,
-        hasSelectedProduct: !!selectedProduct,
         productId,
       });
     }
-    
+
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -425,7 +397,7 @@ export default function ProductPage() {
               <details className="mt-2 text-xs">
                 <summary className="cursor-pointer text-red-500">Detalhes técnicos</summary>
                 <pre className="mt-2 text-xs overflow-auto">
-                  {JSON.stringify({ error, product: !!product, selectedProduct: !!selectedProduct }, null, 2)}
+                  {JSON.stringify({ error, product: !!product }, null, 2)}
                 </pre>
               </details>
             </div>
@@ -494,10 +466,6 @@ export default function ProductPage() {
     }
   };
 
-  const handleSizeChange = (product: Product) => {
-    setSelectedProductId(product.id);
-    setImageError(false); // Reset image error when changing size
-  };
 
   const handleAddToCart = () => {
     // Validar formulário
@@ -508,7 +476,7 @@ export default function ProductPage() {
       });
       return;
     }
-    
+
     // Criar objeto de customização com todas as seleções usando dados da API
     const toppingsData = toppings.map(t => ({
       id: t.id,
@@ -537,7 +505,7 @@ export default function ProductPage() {
     );
 
     // Adicionar ao carrinho com customização
-    addItem(selectedProduct, quantity, customization);
+    addItem(product, quantity, customization);
 
     // Mensagem de confirmação
     const selectedToppingNames = toppings
@@ -550,13 +518,14 @@ export default function ProductPage() {
 
     toast.success('Adicionado ao carrinho!', {
       description: selectedToppingNames
-        ? `${selectedProduct.name} com ${selectedToppingNames}`
-        : selectedProduct.name,
+        ? `${product.name} com ${selectedToppingNames}`
+        : product.name,
       duration: 2000,
     });
 
     router.push('/');
   };
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -583,20 +552,20 @@ export default function ProductPage() {
             </div>
           ) : (
             <Image
-              src={selectedProduct.imageUrl}
-              alt={selectedProduct.name}
+              src={product.imageUrl}
+              alt={product.name}
               fill
               className="object-cover"
               priority
               onError={() => setImageError(true)}
             />
           )}
-          {selectedProduct.hasPromo && selectedProduct.promoText && (
-            <Badge 
+          {product.hasPromo && product.promoText && (
+            <Badge
               className="absolute top-4 right-4 z-10 font-semibold text-sm px-3 py-1"
               style={{ backgroundColor: '#fcc90c', color: '#430238' }}
             >
-              {selectedProduct.promoText}
+              {product.promoText}
             </Badge>
           )}
         </div>
@@ -605,81 +574,26 @@ export default function ProductPage() {
         <Card className="rounded-none border-x-0 border-t-0">
           <CardContent className="pt-6">
             <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
-              {selectedProduct.name}
+              {product.name}
             </h2>
             <p className="text-neutral-600 dark:text-neutral-400 mt-1">
-              {selectedProduct.description}
+              {product.description}
             </p>
             <div className="mt-3 flex items-baseline gap-2">
-              {selectedProduct.hasPromo && selectedProduct.originalPrice && (
+              {product.hasPromo && product.originalPrice && (
                 <span className="text-sm text-neutral-400 line-through">
-                  R$ {Number(selectedProduct.originalPrice).toFixed(2)}
+                  R$ {Number(product.originalPrice).toFixed(2)}
                 </span>
               )}
-              <span 
+              <span
                 className="text-2xl font-bold"
                 style={{ color: '#9d0094' }}
               >
-                R$ {Number(selectedProduct.price || 0).toFixed(2)}
+                R$ {Number(product.price || 0).toFixed(2)}
               </span>
             </div>
           </CardContent>
         </Card>
-
-        {/* Seletor de Tamanho - Apenas se houver variantes */}
-        {hasSizeVariants && (
-          <Card className="rounded-none border-x-0 border-t-0">
-            <CardHeader>
-              <CardTitle>Escolha o tamanho</CardTitle>
-            </CardHeader>
-            <CardContent>
-            <div className="space-y-2">
-              {sizeVariants.map((variant) => {
-                const isSelected = selectedProductId === variant.id;
-                const sizeInfo = variant.sizeId && SIZE_LABELS[variant.sizeId] 
-                  ? SIZE_LABELS[variant.sizeId] 
-                  : variant.sizeId 
-                    ? { name: (variant as any).size?.name || 'Tamanho', ml: 0 }
-                    : null;
-
-                return (
-                  <button
-                    key={variant.id}
-                    onClick={() => handleSizeChange(variant)}
-                    className={`w-full p-4 rounded-xl border-2 flex items-center justify-between transition-all border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600 ${isSelected ? 'border-selected' : ''}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-5 h-5 rounded-full border-2 flex items-center justify-center"
-                        style={isSelected 
-                          ? { borderColor: '#9d0094', backgroundColor: '#9d0094' }
-                          : { borderColor: '#d1d5db' }
-                        }
-                      >
-                        {isSelected && <Check className="w-3 h-3 text-white" />}
-                      </div>
-                      <div className="text-left">
-                        <span className="font-medium">{sizeInfo?.name || 'Único'}</span>
-                        {sizeInfo && (
-                          <span className="text-neutral-500 dark:text-neutral-400 ml-2">
-                            {sizeInfo.ml}ml
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <span 
-                      className="font-semibold"
-                      style={isSelected ? { color: '#9d0094' } : undefined}
-                    >
-                      R$ {variant.price.toFixed(2)}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Acompanhamentos */}
         {ALL_TOPPING_CATEGORIES.map((category) => {
@@ -697,7 +611,7 @@ export default function ProductPage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                      <CardTitle>{TOPPING_CATEGORY_LABELS[category]}</CardTitle>
+                    <CardTitle>{TOPPING_CATEGORY_LABELS[category]}</CardTitle>
                     <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
                       {isExtras
                         ? 'Adicionais pagos'
@@ -709,11 +623,10 @@ export default function ProductPage() {
                   </div>
                   {!isExtras && limit > 0 && !isSkipped && (
                     <span
-                      className={`text-sm font-medium px-2 py-0.5 rounded-full ${
-                        selectedCount >= limit
+                      className={`text-sm font-medium px-2 py-0.5 rounded-full ${selectedCount >= limit
                           ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
                           : 'bg-neutral-100 text-neutral-600 dark:bg-muted dark:text-neutral-400'
-                      }`}
+                        }`}
                     >
                       {selectedCount}/{limit}
                     </span>
@@ -722,48 +635,48 @@ export default function ProductPage() {
               </CardHeader>
               <CardContent>
 
-              {/* Botão "Não quero" - apenas para categorias grátis */}
-              {!isExtras && (
-                <button
-                  onClick={() => handleSkipCategory(category)}
-                  className={`w-full mb-3 p-3 rounded-xl border-2 flex items-center gap-3 transition-all border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 ${isSkipped ? 'border-selected' : ''}`}
-                >
-                  <div
-                    className="w-5 h-5 rounded-full border-2 flex items-center justify-center"
-                    style={isSkipped 
-                      ? { borderColor: '#9d0094', backgroundColor: '#9d0094' }
-                      : { borderColor: '#d1d5db' }
-                    }
+                {/* Botão "Não quero" - apenas para categorias grátis */}
+                {!isExtras && (
+                  <button
+                    onClick={() => handleSkipCategory(category)}
+                    className={`w-full mb-3 p-3 rounded-xl border-2 flex items-center gap-3 transition-all border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 ${isSkipped ? 'border-selected' : ''}`}
                   >
-                    {isSkipped && <X className="w-3 h-3 text-white" />}
+                    <div
+                      className="w-5 h-5 rounded-full border-2 flex items-center justify-center"
+                      style={isSkipped
+                        ? { borderColor: '#9d0094', backgroundColor: '#9d0094' }
+                        : { borderColor: '#d1d5db' }
+                      }
+                    >
+                      {isSkipped && <X className="w-3 h-3 text-white" />}
+                    </div>
+                    <span className={`font-medium text-sm ${isSkipped ? 'text-neutral-900 dark:text-neutral-100' : 'text-neutral-600 dark:text-neutral-400'}`}>
+                      Não quero {TOPPING_CATEGORY_LABELS[category].toLowerCase()}
+                    </span>
+                  </button>
+                )}
+
+                {/* Lista de toppings - oculta se categoria pulada */}
+                {!isSkipped && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {toppings.map((topping) => {
+                      const qty = toppingQuantities[topping.id] || 0;
+                      // Mostrar preço se: é extra OU se o total da categoria >= limite grátis
+                      const showPrice = isExtras || selectedCount >= limit;
+
+                      return (
+                        <ToppingItem
+                          key={topping.id}
+                          topping={topping}
+                          quantity={qty}
+                          showPrice={showPrice}
+                          onIncrease={() => handleToppingIncrease(topping)}
+                          onDecrease={() => handleToppingDecrease(topping)}
+                        />
+                      );
+                    })}
                   </div>
-                  <span className={`font-medium text-sm ${isSkipped ? 'text-neutral-900 dark:text-neutral-100' : 'text-neutral-600 dark:text-neutral-400'}`}>
-                    Não quero {TOPPING_CATEGORY_LABELS[category].toLowerCase()}
-                  </span>
-                </button>
-              )}
-
-              {/* Lista de toppings - oculta se categoria pulada */}
-              {!isSkipped && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {toppings.map((topping) => {
-                    const qty = toppingQuantities[topping.id] || 0;
-                    // Mostrar preço se: é extra OU se o total da categoria >= limite grátis
-                    const showPrice = isExtras || selectedCount >= limit;
-
-                    return (
-                      <ToppingItem
-                        key={topping.id}
-                        topping={topping}
-                        quantity={qty}
-                        showPrice={showPrice}
-                        onIncrease={() => handleToppingIncrease(topping)}
-                        onDecrease={() => handleToppingDecrease(topping)}
-                      />
-                    );
-                  })}
-                </div>
-              )}
+                )}
               </CardContent>
             </Card>
           );
@@ -778,46 +691,44 @@ export default function ProductPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-            <button
-              onClick={() => setWantsCutlery(true)}
-              className={`w-full p-4 rounded-xl border-2 flex items-center gap-3 transition-all border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 ${
-                wantsCutlery === true ? 'border-selected-light dark:border-selected-dark' : ''
-              }`}
-            >
-              <UtensilsCrossed 
-                className="w-5 h-5"
-                style={{ color: wantsCutlery === true ? '#9d0094' : '#9ca3af' }}
-              />
-              <span className="font-medium flex-1 text-left">Quero talheres</span>
-              {wantsCutlery === true && (
-                <div 
-                  className="w-5 h-5 rounded-full border-2 flex items-center justify-center"
-                  style={{ borderColor: '#9d0094', backgroundColor: '#9d0094' }}
-                >
-                  <Check className="w-3 h-3 text-white" />
-                </div>
-              )}
-            </button>
-            <button
-              onClick={() => setWantsCutlery(false)}
-              className={`w-full p-4 rounded-xl border-2 flex items-center gap-3 transition-all border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 ${
-                wantsCutlery === false ? 'border-selected-light dark:border-selected-dark' : ''
-              }`}
-            >
-              <X 
-                className="w-5 h-5"
-                style={{ color: wantsCutlery === false ? '#9d0094' : '#9ca3af' }}
-              />
-              <span className="font-medium flex-1 text-left">Não quero talheres</span>
-              {wantsCutlery === false && (
-                <div 
-                  className="w-5 h-5 rounded-full border-2 flex items-center justify-center"
-                  style={{ borderColor: '#9d0094', backgroundColor: '#9d0094' }}
-                >
-                  <X className="w-3 h-3 text-white" />
-                </div>
-              )}
-            </button>
+              <button
+                onClick={() => setWantsCutlery(true)}
+                className={`w-full p-4 rounded-xl border-2 flex items-center gap-3 transition-all border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 ${wantsCutlery === true ? 'border-selected-light dark:border-selected-dark' : ''
+                  }`}
+              >
+                <UtensilsCrossed
+                  className="w-5 h-5"
+                  style={{ color: wantsCutlery === true ? '#9d0094' : '#9ca3af' }}
+                />
+                <span className="font-medium flex-1 text-left">Quero talheres</span>
+                {wantsCutlery === true && (
+                  <div
+                    className="w-5 h-5 rounded-full border-2 flex items-center justify-center"
+                    style={{ borderColor: '#9d0094', backgroundColor: '#9d0094' }}
+                  >
+                    <Check className="w-3 h-3 text-white" />
+                  </div>
+                )}
+              </button>
+              <button
+                onClick={() => setWantsCutlery(false)}
+                className={`w-full p-4 rounded-xl border-2 flex items-center gap-3 transition-all border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 ${wantsCutlery === false ? 'border-selected-light dark:border-selected-dark' : ''
+                  }`}
+              >
+                <X
+                  className="w-5 h-5"
+                  style={{ color: wantsCutlery === false ? '#9d0094' : '#9ca3af' }}
+                />
+                <span className="font-medium flex-1 text-left">Não quero talheres</span>
+                {wantsCutlery === false && (
+                  <div
+                    className="w-5 h-5 rounded-full border-2 flex items-center justify-center"
+                    style={{ borderColor: '#9d0094', backgroundColor: '#9d0094' }}
+                  >
+                    <X className="w-3 h-3 text-white" />
+                  </div>
+                )}
+              </button>
             </div>
           </CardContent>
         </Card>
@@ -847,11 +758,10 @@ export default function ProductPage() {
             <button
               onClick={() => setQuantity((q) => Math.max(1, q - 1))}
               disabled={quantity <= 1}
-              className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
-                quantity <= 1 
-                  ? 'opacity-30 cursor-not-allowed' 
+              className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${quantity <= 1
+                  ? 'opacity-30 cursor-not-allowed'
                   : 'hover:bg-neutral-200 dark:hover:bg-muted/80'
-              }`}
+                }`}
             >
               <Minus className="w-4 h-4" />
             </button>

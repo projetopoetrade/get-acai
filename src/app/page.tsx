@@ -8,12 +8,7 @@ import { HighlightsCarousel } from '@/components/menu/highlights-carousel';
 import { Badge } from '@/components/ui/badge';
 import { productsService } from '@/services/products';
 import { Product } from '@/types/product';
-
-const CATEGORIES = [
-  { id: 'combos', label: 'Combos', badge: '15% OFF' },
-  { id: 'monte-seu', label: 'Monte o Seu', description: 'Personalize seu açaí' },
-  { id: 'classicos', label: 'Clássicos', description: 'Combinações especiais' },
-];
+import { useCategories } from '@/hooks/useCategories';
 
 // Normalizar categoria para comparação (remove acentos e converte para minúsculas)
 const normalizeCategory = (category: string): string => {
@@ -25,18 +20,27 @@ const normalizeCategory = (category: string): string => {
 };
 
 export default function HomePage() {
-  const [activeCategory, setActiveCategory] = useState('combos');
+  const { categories, isLoading: loadingCategories } = useCategories();
+  const [activeCategory, setActiveCategory] = useState<string>('');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
+  // Define categoria ativa inicial quando as categorias carregarem
+  useEffect(() => {
+    if (categories.length > 0 && !activeCategory) {
+      setActiveCategory(categories[0].id);
+    }
+  }, [categories, activeCategory]);
 
-  // ✅ Carrega produtos reais do backend
+
+  // ✅ Carrega produtos reais do backend (apenas disponíveis)
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const allProducts = await productsService.getAll();
+        // Filtra apenas produtos disponíveis na página principal
+        const allProducts = await productsService.getAll(true);
         setProducts(allProducts as Product[]);
       } catch (error) {
         console.error('Erro ao carregar produtos:', error);
@@ -65,6 +69,8 @@ export default function HomePage() {
 
   // Detectar categoria ativa no scroll
   useEffect(() => {
+    if (categories.length === 0) return;
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -79,7 +85,7 @@ export default function HomePage() {
       }
     );
 
-    CATEGORIES.forEach((cat) => {
+    categories.forEach((cat) => {
       const section = sectionRefs.current[cat.id];
       if (section) {
         observer.observe(section);
@@ -87,7 +93,7 @@ export default function HomePage() {
     });
 
     return () => observer.disconnect();
-  }, []);
+  }, [categories]);
 
   // ✅ Filtra produtos por categoria (dados reais)
   const getProductsByCategory = (categoryId: string) => {
@@ -118,11 +124,12 @@ export default function HomePage() {
       <CategoryTabs
         activeCategory={activeCategory}
         onCategoryChange={handleCategoryClick}
+        categories={categories.map(cat => ({ id: cat.id, label: cat.label }))}
       />
 
       {/* Seções de produtos */}
       <div className="max-w-5xl mx-auto px-4 pb-24">
-        {CATEGORIES.map((category) => {
+        {categories.map((category) => {
           const categoryProducts = getProductsByCategory(category.id);
 
           return (

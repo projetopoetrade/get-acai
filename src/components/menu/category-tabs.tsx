@@ -3,18 +3,13 @@
 
 import { cn } from '@/lib/utils';
 
-const categories = [
-  { id: 'combos', label: 'Combos' },
-  { id: 'monte-seu', label: 'Monte o Seu' },
-  { id: 'classicos', label: 'Clássicos' },
-];
-
 interface CategoryTabsProps {
   activeCategory: string;
   onCategoryChange: (category: string) => void;
+  categories: Array<{ id: string; label: string }>;
 }
 
-export function CategoryTabs({ activeCategory, onCategoryChange }: CategoryTabsProps) {
+export function CategoryTabs({ activeCategory, onCategoryChange, categories }: CategoryTabsProps) {
   return (
     <div className="sticky top-0 z-40 bg-white dark:bg-card border-b dark:border-border shadow-sm transition-colors">
       <div className="max-w-5xl mx-auto flex gap-2 p-3 overflow-x-auto scrollbar-hide">

@@ -1,0 +1,415 @@
+[
+  {
+    "name": "Acajutiba",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Alto da Cruz",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Areias (Abrantes)",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Arembepe (Abrantes)",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Barra do Jacuípe (Monte Gordo)",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Barra do Pojuca (Monte Gordo)",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Bela Vista",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Boa Esperança (Monte Gordo)",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Burissatuba",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Cajazeiras de Abrantes (Abrantes)",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Camaçari de Dentro",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Cascalheira (Abrantes)",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Centro",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Coqueiros de Monte Gordo (Monte Gordo)",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Cristo Redentor",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Dois de Julho",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Dom Avelar",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Genipabu (Monte Gordo)",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Gleba A",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Gleba B",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Gleba C",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Gravatá",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Guarajuba (Monte Gordo)",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Itacimirim (Monte Gordo)",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Jardim Brasília",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Jardim Limoeiro",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Jauá (Abrantes)",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Machadinho",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Mangueiral",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Monte Gordo (Monte Gordo)",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Natal",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Nova Abrantes (Abrantes)",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Nova Aliança - PHOC I",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Nova Vitória",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Novo Horizonte",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Parque Florestal",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Parque Nascente do Rio Capivara",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Parque Satélite",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Parque Verde I",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Parque Verde II",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Parque das Mangabas",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Parque das Palmeiras",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "PoloPlast",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Ponto Certo",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Pólo Industrial de Camaçari",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Pólo Logístico",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Quarenta e Seis",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Recanto das Árvores",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Renascer - PHOC II",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Santa Maria",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Santo Antônio",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "São Bento (Monte Gordo)",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Triângulo",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Vale do Landirana (Abrantes)",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Varge Grande (Abrantes)",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Verdes Horizontes",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Vila Irmã Dulce",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Vila de Abrantes (Abrantes)",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  },
+  {
+    "name": "Vívea",
+    "customDeliveryFee": 5.0,
+    "estimatedTime": "30-45 min",
+    "active": true,
+    "notes": "Cadastrado via automação ViaCEP"
+  }
+]

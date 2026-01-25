@@ -52,19 +52,19 @@ export default function LoginPage() {
         throw new Error(data.message || 'Erro ao fazer login');
       }
 
-      if (data.token) {
-        localStorage.setItem('auth_token', data.token); // Use o nome que seu api.ts espera
+      const token = data.token || data.access_token;
+      
+      if (token) {
+        localStorage.setItem('auth_token', token);
+      }
+
+      // Salva dados do usuário no localStorage
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
       }
 
       // 2. Login bem sucedido!
       toast.success('Login realizado com sucesso!');
-
-      // 3. Solução Híbrida:
-      // O Cookie HttpOnly já foi definido pelo servidor (para o Middleware).
-      // Agora salvamos no localStorage para o Axios (se seu frontend precisar).
-      if (data.token || data.access_token) {
-         localStorage.setItem('auth_token', data.token || data.access_token);
-      }
 
       // 4. Redirecionamento Forçado
       // Usamos window.location.href em vez de router.push para garantir 

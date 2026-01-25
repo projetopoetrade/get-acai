@@ -20,6 +20,31 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## 🔧 Configurações de Desenvolvimento
+
+### Modo de Desenvolvimento (Loja Sempre Aberta)
+
+Para evitar que a loja feche automaticamente durante o desenvolvimento, adicione no arquivo `.env.local`:
+
+```env
+NEXT_PUBLIC_DEV_MODE=true
+```
+
+Quando ativado, a loja ficará sempre aberta, ignorando a verificação de horário do backend. Você verá uma mensagem no console: `🔧 [DEV MODE] Loja forçada a ficar sempre aberta`.
+
+**⚠️ Importante:** Não deixe essa variável como `true` em produção!
+
+### Fuso Horário
+
+O sistema usa o fuso horário do servidor backend para determinar se a loja está aberta ou fechada. A verificação de horário é feita no endpoint `/settings/status` do backend.
+
+**Para verificar/alterar o fuso horário:**
+- O backend provavelmente está usando UTC ou `America/Sao_Paulo` (GMT-3)
+- Verifique a configuração de timezone do servidor backend
+- Os horários de abertura/fechamento configurados em `/admin/configuracoes` devem estar no mesmo fuso horário do servidor
+
+**Exemplo:** Se o servidor está em UTC e você configura "22:00" como horário de fechamento, a loja fechará às 22:00 UTC (19:00 em Brasília, se estiver em horário padrão).
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

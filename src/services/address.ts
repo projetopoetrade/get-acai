@@ -1,5 +1,5 @@
 // src/services/address.ts
-import  api  from '@/lib/api';
+import api from '@/lib/api';
 
 export interface Address {
   id: string;
@@ -62,5 +62,11 @@ export const addressService = {
   // DELETE /addresses/:id
   delete: async (id: string): Promise<void> => {
     await api.delete(`/addresses/${id}`);
-  }
+  },
+
+  setDefault: async (id: string): Promise<Address> => {
+    // Chamada para o endpoint PATCH que gerencia o status isDefault no backend
+    const res = await api.patch<Address>(`/addresses/${id}/set-default`);
+    return res.data;
+  },
 };

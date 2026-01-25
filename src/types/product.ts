@@ -5,7 +5,7 @@
 
 export type HighlightType = 'promo' | 'bestseller' | 'new' | 'limited';
 export type SizeId = 'pequeno' | 'medio' | 'grande';
-export type ProductCategory = 'combos' | 'monte-seu' | 'classicos' | 'complemento';
+export type ProductCategory = 'combos' | 'monte-seu' | 'classicos' | 'complemento' | 'bebidas';
 
 export interface ProductHighlight {
   type: HighlightType;

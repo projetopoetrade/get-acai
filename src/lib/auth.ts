@@ -140,6 +140,55 @@ export async function getCurrentUser(): Promise<User | null> {
 }
 
 /**
+ * Busca o usuário atual da API (atualiza dados do servidor)
+ */
+export async function fetchCurrentUser(): Promise<User | null> {
+  try {
+    const token = await getAuthToken();
+    
+    if (!token) {
+      return null;
+    }
+
+    const res = await fetch(`${API_URL}/auth/me`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      cache: 'no-store',
+    });
+
+    if (!res.ok) {
+      // Se token inválido, limpa cookies
+      if (res.status === 401) {
+        const cookieStore = await cookies();
+        cookieStore.delete('access_token');
+        cookieStore.delete('user');
+      }
+      return null;
+    }
+
+    const user: User = await res.json();
+
+    // Atualiza cookie com dados mais recentes
+    const cookieStore = await cookies();
+    cookieStore.set('user', JSON.stringify(user), {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    });
+
+    return user;
+  } catch (error) {
+    console.error('Fetch current user error:', error);
+    return null;
+  }
+}
+
+/**
  * Verifica se usuário está autenticado
  */
 export async function isAuthenticated(): Promise<boolean> {
