@@ -118,7 +118,7 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async () => {
     if (!selectedAddress) return toast.error('Selecione um endereço');
-    if (!isStoreOpen) return toast.error('Loja fechada no momento'); // Validação de segurança
+    if (!isStoreOpen) return toast.error('Loja fechada no momento');
 
     setLoading(true);
     try {
@@ -135,20 +135,25 @@ export default function CheckoutPage() {
         paymentMethod,
         deliveryMethod: 'delivery',
         addressId: selectedAddress.id,
-        changeFor: paymentMethod === 'cash' ? parseFloat(changeFor.replace(',', '.')) : undefined,
+        changeFor: paymentMethod === 'cash' && changeFor ? parseFloat(changeFor.replace(',', '.')) : undefined,
       };
 
-      await ordersService.create(payload);
-      toast.success('Pedido enviado!');
+      // ✅ O backend agora retorna o objeto do pedido criado (incluindo dados do PIX)
+      const newOrder = await ordersService.create(payload);
+      
+      toast.success('Pedido recebido! Aguardando pagamento.');
       cart.clearCart();
-      router.push('/pedidos');
+      
+      // 🚀 Redireciona DIRETAMENTE para a página do pedido para mostrar o PIX
+      router.push(`/pedidos/${newOrder.id}`);
+
     } catch (error: any) {
+      console.error(error);
       toast.error(error.response?.data?.message || 'Erro ao criar pedido');
     } finally {
       setLoading(false);
     }
   };
-
   const getAddressIcon = (label: string) => {
     const l = label.toLowerCase();
     if (l.includes('casa')) return Home;

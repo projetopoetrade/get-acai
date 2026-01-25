@@ -13,13 +13,15 @@ import { productsService } from '@/services/products';
 import { Category } from '@/services/categories';
 import { toast } from 'sonner';
 
-// Schema de validação
+// ✅ Importe o novo componente
+import { ImageUpload } from '../image-upload';
+
 const productSchema = z.object({
   name: z.string().min(3, 'Nome muito curto'),
   description: z.string().optional(),
   price: z.string().min(1, 'Preço obrigatório'),
-  imageUrl: z.string().url('URL inválida').optional().or(z.literal('')),
-  categoryId: z.string().min(1, 'Categoria obrigatória'), // Agora valida UUID
+  imageUrl: z.string().optional().or(z.literal('')),
+  categoryId: z.string().min(1, 'Categoria obrigatória'),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -29,29 +31,28 @@ interface ProductFormModalProps {
   onClose: () => void;
   onSuccess: () => void;
   productToEdit?: Product | null;
-  categories: Category[]; // ✅ Recebe a lista real do banco
+  categories: Category[];
 }
 
 export function ProductFormModal({ isOpen, onClose, onSuccess, productToEdit, categories }: ProductFormModalProps) {
   const [saving, setSaving] = useState(false);
 
-  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<ProductFormData>({
+  // ✅ Adicionamos 'watch' e 'setValue' para gerenciar a imagem manualmente
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
   });
+
+  // ✅ Observa o valor atual da URL para passar pro preview do componente
+  const currentImageUrl = watch('imageUrl');
 
   useEffect(() => {
     if (isOpen) {
       if (productToEdit) {
-        // Modo edição - espera categorias carregarem
         if (categories.length > 0) {
-          // Extrai categoryId de diferentes formatos possíveis
           const catId = typeof productToEdit.category === 'object' 
              ? (productToEdit.category as Category)?.id 
              : productToEdit.category || productToEdit.categoryId;
   
-    
-          // Preenche todos os campos do formulário
-          // Converte o preço para string no formato brasileiro (com vírgula)
           let priceStr = '0.00';
           if (productToEdit.price) {
             const priceNum = typeof productToEdit.price === 'string' 
@@ -69,14 +70,13 @@ export function ProductFormModal({ isOpen, onClose, onSuccess, productToEdit, ca
           });
         }
       } else {
-        // --- MODO CRIAÇÃO ---
         if (categories.length > 0) {
           reset({
               name: '',
               description: '',
               price: '',
               imageUrl: '',
-              categoryId: categories[0]?.id || '' // Seleciona o primeiro por padrão
+              categoryId: categories[0]?.id || ''
           });
         }
       }
@@ -105,7 +105,6 @@ export function ProductFormModal({ isOpen, onClose, onSuccess, productToEdit, ca
       onClose();
     } catch (error: any) {
       console.error('[ProductFormModal] Erro ao salvar:', error);
-      console.error('[ProductFormModal] Resposta do erro:', error.response?.data);
       toast.error(error.response?.data?.message || 'Erro ao salvar produto');
     } finally {
       setSaving(false);
@@ -118,8 +117,8 @@ export function ProductFormModal({ isOpen, onClose, onSuccess, productToEdit, ca
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       
-      <div className="relative bg-white dark:bg-neutral-900 w-full max-w-lg rounded-2xl shadow-xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-neutral-100 dark:border-neutral-800 flex justify-between items-center">
+      <div className="relative bg-white dark:bg-neutral-900 w-full max-w-lg rounded-2xl shadow-xl overflow-hidden max-h-[90vh] overflow-y-auto">
+        <div className="px-6 py-4 border-b border-neutral-100 dark:border-neutral-800 flex justify-between items-center sticky top-0 bg-white dark:bg-neutral-900 z-10">
           <h2 className="text-lg font-bold">
             {productToEdit ? 'Editar Produto' : 'Novo Produto'}
           </h2>
@@ -130,6 +129,18 @@ export function ProductFormModal({ isOpen, onClose, onSuccess, productToEdit, ca
 
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
           
+          {/* ✅ NOVO COMPONENTE DE UPLOAD */}
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Foto do Produto</label>
+            <ImageUpload 
+              value={currentImageUrl}
+              onChange={(url: string) => setValue('imageUrl', url)} // Atualiza o formulário quando o upload termina
+              onRemove={() => setValue('imageUrl', '')}     // Limpa o formulário
+            />
+            {/* Input escondido para o React Hook Form registrar o campo, se necessário, mas o setValue já cuida disso */}
+            <input type="hidden" {...register('imageUrl')} />
+          </div>
+
           <div>
             <label className="block text-sm font-medium mb-1.5">Nome do Produto</label>
             <Input {...register('name')} placeholder="Ex: Açaí Turbinado" />
@@ -139,14 +150,13 @@ export function ProductFormModal({ isOpen, onClose, onSuccess, productToEdit, ca
           <div className="grid grid-cols-2 gap-4">
             <div>
                <label className="block text-sm font-medium mb-1.5">Preço (R$)</label>
-               <Input {...register('price')} placeholder="0.00" />
+               <Input {...register('price')} placeholder="0,00" />
             </div>
             <div>
                <label className="block text-sm font-medium mb-1.5">Categoria</label>
-               {/* ✅ SELECT DINÂMICO AGORA */}
                {categories.length === 0 ? (
                  <div className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm flex items-center text-neutral-500">
-                   Carregando categorias...
+                   Carregando...
                  </div>
                ) : (
                  <select 
@@ -173,12 +183,7 @@ export function ProductFormModal({ isOpen, onClose, onSuccess, productToEdit, ca
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1.5">URL da Imagem</label>
-            <Input {...register('imageUrl')} placeholder="https://..." />
-          </div>
-
-          <div className="pt-4 flex gap-3 justify-end">
+          <div className="pt-4 flex gap-3 justify-end sticky bottom-0 bg-white dark:bg-neutral-900 pb-2">
             <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
             <Button type="submit" disabled={saving} className="bg-[#9d0094] hover:bg-[#7a0073] text-white">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4 mr-2"/> Salvar</>}

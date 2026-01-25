@@ -18,18 +18,20 @@ import {
   Receipt,
   Ban,
   Loader2,
-  Star
+  Star,
+  Eye,      // ✅ Adicionado
+  QrCode    // ✅ Adicionado
 } from 'lucide-react';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
-import { ordersService, Order } from '@/services/orders'; // Importando Order e Service juntos
+import { ordersService, Order } from '@/services/orders';
 import { toast } from 'sonner';
 import { ReviewForm } from '@/components/reviews/review-form';
 
 // =====================================================
 // CONFIGURAÇÃO - WhatsApp
 // =====================================================
-const STORE_WHATSAPP = '5585999999999'; 
+const STORE_WHATSAPP = '5571999999999'; // Ajuste para o número real de Camaçari se necessário
 
 // =====================================================
 // CONFIGURAÇÃO DE STATUS
@@ -46,9 +48,9 @@ const STATUS_CONFIG: Record<string, StatusConfig> = {
   awaiting_payment: {
     label: 'Aguardando Pagamento',
     description: 'Realize o pagamento para confirmarmos seu pedido',
-    icon: Clock,
-    color: '#f59e0b',
-    bgColor: 'rgba(245, 158, 11, 0.1)',
+    icon: QrCode,
+    color: '#9d0094', // Roxo destaque
+    bgColor: 'rgba(157, 0, 148, 0.1)',
   },
   pending: {
     label: 'Pendente',
@@ -137,6 +139,7 @@ interface OrderCardProps {
 }
 
 function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
+  const router = useRouter(); // ✅ Router adicionado para navegação
   const [expanded, setExpanded] = useState(false);
   const [reviewingProductId, setReviewingProductId] = useState<string | null>(null);
   
@@ -155,10 +158,7 @@ function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
   ].includes(statusKey);
 
   const isDelivered = statusKey === 'delivered';
-
-  // ✅ CORREÇÃO: Fallback seguro para o endereço
   const address = order.address;
-  // Usa deliveryMethod (da API) ou deliveryType (compatibilidade)
   const deliveryMethod = order.deliveryMethod || order.deliveryType;
 
   return (
@@ -233,12 +233,9 @@ function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
             </h4>
             <div className="space-y-2">
               {order.items.map((item, idx) => {
-                // Suporta tanto product.name quanto productName direto
                 const productName = item.product?.name || item.productName || 'Produto';
-                // Suporta toppings em duas estruturas: direto no item ou em customization
                 const toppings = item.toppings || item.customization?.toppings || [];
                 
-                // Função helper para extrair o nome do topping
                 const getToppingName = (topping: any): string => {
                   if (topping && typeof topping === 'object') {
                     if ('toppingName' in topping && topping.toppingName) return String(topping.toppingName);
@@ -265,8 +262,7 @@ function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
             </div>
           </div>
 
-          {/* 3. ✅ ENDEREÇO DE ENTREGA CORRIGIDO */}
-          {/* Usamos deliveryMethod (da API) ou deliveryType (compatibilidade) */}
+          {/* 3. Endereço */}
           {deliveryMethod === 'delivery' && address && (
             <div>
               <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2 flex items-center gap-2">
@@ -281,14 +277,10 @@ function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
                   {address.neighborhood} - {address.city}/{address.state}
                 </p>
                 {address.complement && (
-                   <p className="text-xs text-neutral-500 mt-1">
-                     Comp: {address.complement}
-                   </p>
+                   <p className="text-xs text-neutral-500 mt-1">Comp: {address.complement}</p>
                 )}
                 {address.reference && (
-                   <p className="text-xs text-neutral-500">
-                     Ref: {address.reference}
-                   </p>
+                   <p className="text-xs text-neutral-500">Ref: {address.reference}</p>
                 )}
               </div>
             </div>
@@ -305,7 +297,6 @@ function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
                 </span>
              </div>
              
-             {/* Taxa de entrega */}
              {deliveryMethod === 'delivery' && (
                 <div className="flex justify-between text-sm">
                    <span className="text-neutral-600">Taxa de entrega</span>
@@ -315,7 +306,6 @@ function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
                 </div>
              )}
 
-             {/* Desconto */}
              {Number(order.discount) > 0 && (
                 <div className="flex justify-between text-sm text-green-600">
                    <span>Desconto</span>
@@ -329,7 +319,7 @@ function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
              </div>
           </div>
 
-          {/* 5. Avaliar Produtos (apenas para pedidos entregues) */}
+          {/* 5. Avaliação (apenas entregues) */}
           {isDelivered && order.items.length > 0 && (
             <div className="border-t border-neutral-100 dark:border-neutral-800 pt-4">
               <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-3 flex items-center gap-2">
@@ -340,9 +330,7 @@ function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
                 {order.items.map((item, idx) => {
                   const productId = item.product?.id || item.productId;
                   const productName = item.product?.name || item.productName || 'Produto';
-                  
                   if (!productId) return null;
-
                   const isReviewing = reviewingProductId === productId;
 
                   return (
@@ -399,24 +387,47 @@ function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
 
           {/* 6. Ações (Botões) */}
           <div className="flex flex-col gap-2 pt-2">
+             
+             {/* ✅ BOTÃO VER DETALHES / PAGAR */}
+             <Button
+                onClick={() => router.push(`/pedidos/${order.id}`)}
+                className="w-full font-bold h-12 rounded-xl flex items-center justify-center gap-2 transition-transform active:scale-95"
+                variant={statusKey === 'awaiting_payment' ? 'default' : 'secondary'}
+                style={statusKey === 'awaiting_payment' 
+                  ? { backgroundColor: '#9d0094', color: 'white' } 
+                  : {}
+                }
+             >
+                {statusKey === 'awaiting_payment' ? (
+                  <>
+                    <QrCode className="w-5 h-5" />
+                    Pagar / Ver QR Code
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-5 h-5" />
+                    Ver detalhes do pedido
+                  </>
+                )}
+             </Button>
+
              <a
                href={getWhatsAppLink(order.orderNumber || order.id.substring(0, 8))}
                target="_blank"
                rel="noopener noreferrer"
-               className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl font-semibold text-white transition-all hover:opacity-90"
+               className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl font-semibold text-white transition-all hover:opacity-90 active:scale-95"
                style={{ backgroundColor: '#25D366' }}
              >
                <MessageCircle className="w-5 h-5" />
                Falar com a loja
              </a>
 
-             {/* Botão Cancelar */}
              {(statusKey === 'pending' || statusKey === 'awaiting_payment') && (
                <Button 
                  variant="outline"
                  onClick={() => onCancel(order.id)}
                  disabled={isCancelling}
-                 className="w-full border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/30 dark:hover:bg-red-900/20"
+                 className="w-full border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/30 dark:hover:bg-red-900/20 active:scale-95"
                >
                  {isCancelling ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Ban className="w-4 h-4 mr-2" />}
                  Cancelar Pedido
@@ -453,23 +464,23 @@ export default function PedidosPage() {
 
   useEffect(() => {
     loadOrders();
-    const interval = setInterval(loadOrders, 30000);
+    const interval = setInterval(loadOrders, 30000); // Polling da lista a cada 30s
     return () => clearInterval(interval);
   }, [loadOrders]);
 
   const handleCancelOrder = async (id: string) => {
-     if (!confirm('Tem certeza que deseja cancelar este pedido?')) return;
+      if (!confirm('Tem certeza que deseja cancelar este pedido?')) return;
 
-     setCancellingId(id);
-     try {
+      setCancellingId(id);
+      try {
         await ordersService.cancelOrder(id);
         toast.success('Pedido cancelado com sucesso.');
         loadOrders();
-     } catch (error: any) {
+      } catch (error: any) {
         toast.error(error.response?.data?.message || 'Erro ao cancelar');
-     } finally {
+      } finally {
         setCancellingId(null);
-     }
+      }
   };
 
   const activeOrders = orders.filter(o => {

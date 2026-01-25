@@ -7,9 +7,9 @@ import type { LoginCredentials, RegisterData, User, AuthResponse, AuthResult } f
 
 // Normaliza a URL base: garante que termine com /api
 const getApiUrl = () => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
   // Remove /api se já existir no final
-  const normalized = baseUrl.replace(/\/api\/?$/, '');
+  const normalized = baseUrl?.replace(/\/api\/?$/, '');
   // Adiciona /api
   return `${normalized}/api`;
 };
