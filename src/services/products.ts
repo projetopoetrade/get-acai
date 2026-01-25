@@ -65,7 +65,7 @@ export const productsService = {
     const res = await api.get('/products', { params });
     
     // Busca o mapa de categorias para resolver UUIDs
-    const categoryMap = await getCategoryMap();
+    const categoryMap = await getCategoryMap().catch(() => new Map<string, string>());
     
     // ✅ Retorna EXATAMENTE o tipo que ProductCard espera
     return res.data.map((p: any): Product => {
@@ -149,35 +149,12 @@ export const productsService = {
   getHighlights: async (): Promise<Product[]> => {
     const res = await api.get('/products/highlights');
     
-    // O restante do código continua igual
-    return res.data.map((p: any): Product => {
-      // Extrai categoryId e categoryName de diferentes formatos possíveis
-      let categoryId: string = '';
-      let categoryName: string = '';
+    // ✅ Definimos p: any para o mapeamento, mas o retorno final como Product
+    return (res.data || []).map((p: any): Product => {
+      let categoryId = p.categoryId || (p.category?.id) || '';
+      let categoryName = p.category?.name || (typeof p.category === 'string' ? p.category : '');
       
-      if (p.categoryId) {
-        categoryId = p.categoryId;
-      }
-      
-      if (p.category) {
-        // Se category é um objeto, pega o id e name
-        if (typeof p.category === 'object' && p.category !== null) {
-          categoryId = p.category.id || categoryId;
-          categoryName = p.category.name || categoryName;
-        } else {
-          // Se category é uma string, usa como nome
-          categoryName = p.category;
-        }
-      }
-      
-      // Se temos categoryName mas não categoryId, usa o nome para mapear
-      if (categoryName && !categoryId) {
-        categoryId = categoryName;
-      }
-      
-      // Se temos categoryName, mapeia para o ID esperado pelo frontend
-      const categoryNameToMap = categoryName || categoryId || '';
-      const mappedCategory = categoryNameToMap ? mapCategoryNameToId(categoryNameToMap) : 'monte-seu';
+      const mappedCategory = mapCategoryNameToId(categoryName || categoryId);
       
       return {
         id: p.id,
@@ -185,19 +162,19 @@ export const productsService = {
         description: p.description || 'Produto delicioso e fresquinho',
         price: typeof p.price === 'string' ? parseFloat(p.price) : Number(p.price) || 0,
         imageUrl: p.imageUrl || '/placeholder-product.jpg',
-        available: p.available ?? true,
+        available: !!(p.available ?? true), // ✅ Forçamos boolean para o filtro p.available
         category: mappedCategory,
-        originalPrice: p.originalPrice ? (typeof p.originalPrice === 'string' ? parseFloat(p.originalPrice) : Number(p.originalPrice)) : undefined,
-        hasPromo: p.hasPromo ?? false,
+        originalPrice: p.originalPrice ? Number(p.originalPrice) : undefined,
+        hasPromo: !!p.hasPromo,
         promoText: p.promoText,
-        isCombo: p.isCombo ?? false,
+        isCombo: !!p.isCombo,
         isCustomizable: p.isCustomizable ?? true,
         highlight: p.highlight,
         sizeId: p.sizeId,
         sizeGroup: p.sizeGroup,
       };
     });
-  },
+},
 
   getCategories: async () => {
     const res = await api.get('/products/categories');

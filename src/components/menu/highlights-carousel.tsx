@@ -49,7 +49,7 @@ export function HighlightsCarousel() {
       try {
         const data = await productsService.getHighlights();
         // Filtra apenas produtos disponíveis
-        const availableHighlights = data.filter(p => p.available);
+        const availableHighlights = data.filter((p: Product) => p.available);
         setHighlights(availableHighlights);
       } catch (error) {
         console.error('Erro ao carregar destaques:', error);
