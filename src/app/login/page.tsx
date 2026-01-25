@@ -8,6 +8,8 @@ import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { loginSchema, type LoginFormData } from '@/lib/validations';
 import { toast } from 'sonner';
+import { setAuthCookie } from '../actions/auth';
+
 
 // Componente Interno para o Conteúdo
 function LoginContent() {
@@ -51,11 +53,18 @@ function LoginContent() {
       }
 
       const token = data.token || data.access_token;
-      if (token) localStorage.setItem('auth_token', token);
+      if (token) {localStorage.setItem('auth_token', token);
+        await setAuthCookie(token);
+      }
+
+
+
       if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
+      
 
       toast.success('Login realizado com sucesso!');
-      window.location.href = '/'; 
+      router.push('/');
+      router.refresh();
     } catch (error: any) {
       console.error('Login Error:', error);
       toast.error(error.message || 'Falha na conexão com o servidor');
