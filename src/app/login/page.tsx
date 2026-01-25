@@ -39,47 +39,30 @@ export default function LoginPage() {
     }
 
     try {
-      // 1. Chama a rota interna do Next.js (Proxy que define o Cookie HttpOnly)
-      const response = await fetch('/auth/login', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(result.data),
       });
-
-      const data = await response.json();
-
+    
+      // Verificação de segurança para o erro de JSON vazio
+      const text = await response.text();
+      const data = text ? JSON.parse(text) : {};
+    
       if (!response.ok) {
         throw new Error(data.message || 'Erro ao fazer login');
       }
-
+    
       const token = data.token || data.access_token;
-      
-      if (token) {
-        localStorage.setItem('auth_token', token);
-      }
-
-      // Salva dados do usuário no localStorage
-      if (data.user) {
-        localStorage.setItem('user', JSON.stringify(data.user));
-      }
-
-      // 2. Login bem sucedido!
+      if (token) localStorage.setItem('auth_token', token);
+      if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
+    
       toast.success('Login realizado com sucesso!');
-
-      // 4. Redirecionamento Forçado
-      // Usamos window.location.href em vez de router.push para garantir 
-      // que os cookies sejam recarregados corretamente pelo navegador.
       window.location.href = '/'; 
-
     } catch (error: any) {
-      console.error(error);
-      const errorMessage = error.message || 'Erro ao fazer login';
-      setErrors({ email: errorMessage });
-      toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
+      console.error('Login Error:', error);
+      toast.error(error.message || 'Falha na conexão com o servidor');
     }
-  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -167,4 +150,5 @@ export default function LoginPage() {
       </div>
     </div>
   );
+}
 }
