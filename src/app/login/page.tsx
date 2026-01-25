@@ -1,17 +1,16 @@
 // src/app/login/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-// Removido import do login direto, pois vamos usar a rota de API
-// import { login } from '@/lib/auth'; 
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { loginSchema, type LoginFormData } from '@/lib/validations';
 import { toast } from 'sonner';
 
-export default function LoginPage() {
+// Componente Interno para o Conteúdo
+function LoginContent() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,7 +22,6 @@ export default function LoginPage() {
     setErrors({});
     setIsLoading(true);
 
-    // Validação com Zod
     const result = loginSchema.safeParse({ email, password });
 
     if (!result.success) {
@@ -44,30 +42,31 @@ export default function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(result.data),
       });
-    
-      // Verificação de segurança para o erro de JSON vazio
+
       const text = await response.text();
       const data = text ? JSON.parse(text) : {};
-    
+
       if (!response.ok) {
         throw new Error(data.message || 'Erro ao fazer login');
       }
-    
+
       const token = data.token || data.access_token;
       if (token) localStorage.setItem('auth_token', token);
       if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
-    
+
       toast.success('Login realizado com sucesso!');
       window.location.href = '/'; 
     } catch (error: any) {
       console.error('Login Error:', error);
       toast.error(error.message || 'Falha na conexão com o servidor');
+    } finally {
+      setIsLoading(false); // ✅ Adicionado para destravar o botão em caso de erro
     }
+  }; // ✅ A chave do handleSubmit agora fecha AQUI
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
-
       <div className="flex-1 flex items-center justify-center px-4 py-8">
         <div className="w-full max-w-md">
           <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 shadow-sm border border-neutral-200 dark:border-neutral-800">
@@ -151,4 +150,12 @@ export default function LoginPage() {
     </div>
   );
 }
+
+// ✅ Export Default com Suspense para evitar tela branca por causa da URL
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+      <LoginContent />
+    </Suspense>
+  );
 }
