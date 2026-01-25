@@ -146,9 +146,10 @@ export const productsService = {
       };
     });
   },
-
-  getHighlights: async () => {
+  getHighlights: async (): Promise<Product[]> => {
     const res = await api.get('/products/highlights');
+    
+    // O restante do código continua igual
     return res.data.map((p: any): Product => {
       // Extrai categoryId e categoryName de diferentes formatos possíveis
       let categoryId: string = '';
