@@ -40,7 +40,7 @@ export default function LoginPage() {
 
     try {
       // 1. Chama a rota interna do Next.js (Proxy que define o Cookie HttpOnly)
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(result.data),
