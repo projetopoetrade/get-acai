@@ -3,21 +3,19 @@
 /**
  * Formata telefone brasileiro (71) 9 9999-9999
  */
-export function formatPhone(value: string): string {
-    const numbers = value.replace(/\D/g, '');
+export const formatPhone = (value: string) => {
+  if (!value) return "";
+  const numbers = value.replace(/\D/g, ""); // Remove tudo que não é número
   
-    if (numbers.length <= 2) {
-      return numbers;
-    }
-    if (numbers.length <= 7) {
-      return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
-    }
-    if (numbers.length <= 11) {
-      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 3)} ${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
-    }
-  
-    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 3)} ${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
+  if (numbers.length <= 11) {
+    // Máscara para (71) 98535-0741
+    return numbers
+      .replace(/(\d{2})(\d)/, "($1) $2")
+      .replace(/(\d{5})(\d)/, "$1-$2")
+      .replace(/(-\d{4})\d+?$/, "$1");
   }
+  return value;
+};
   
   /**
    * Remove formatação, deixando apenas números
