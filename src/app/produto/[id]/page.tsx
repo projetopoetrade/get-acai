@@ -257,14 +257,19 @@ export default function ProductPage() {
         </div>
       </header>
 
-      {/* Conteúdo Principal - ✅ MUDANÇA 2: Novo Layout Horizontal */}
+
+      {/* Conteúdo Principal */}
       <div className="max-w-4xl mx-auto">
         
-        {/* Container Flex para Imagem e Informações */}
-        <div className="p-4 md:p-6 flex flex-col md:flex-row gap-4 md:gap-6 items-start border-b border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+        {/* Container Flex: Agora é SEMPRE 'flex-row' (lado a lado), mesmo no mobile */}
+        <div className="p-4 flex flex-row gap-4 items-start border-b border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900">
           
-          {/* Coluna da Imagem (Menor, quadrada e com bordas arredondadas) */}
-          <div className="relative w-32 h-32 sm:w-40 sm:h-40 shrink-0 bg-white rounded-2xl overflow-hidden border border-neutral-100 dark:border-neutral-800">
+          {/* Coluna da Imagem */}
+          {/* 1. w-36 h-36 (144px): Tamanho ideal para celular (grande, mas deixa espaço pro texto).
+             2. sm:w-56 sm:h-56: Fica maior em tablets/PC.
+             3. rounded-[2rem]: Bordas bem arredondadas (inferiores e superiores) como na referência.
+          */}
+          <div className="relative w-36 h-36 sm:w-56 sm:h-56 shrink-0 bg-white rounded-[2rem] overflow-hidden border border-neutral-100 dark:border-neutral-800 shadow-sm">
             {imageError ? (
               <div className="absolute inset-0 flex items-center justify-center">
                 <Cherry className="w-12 h-12" style={{ color: '#c69abf' }} />
@@ -281,7 +286,7 @@ export default function ProductPage() {
             )}
             {product.hasPromo && product.promoText && (
               <Badge
-                className="absolute top-1 right-1 z-10 font-bold text-xs px-2 py-0.5 shadow-sm"
+                className="absolute top-2 right-2 z-10 font-bold text-[10px] px-2 py-0.5 shadow-sm"
                 style={{ backgroundColor: '#fcc90c', color: '#430238' }}
               >
                 {product.promoText}
@@ -289,24 +294,26 @@ export default function ProductPage() {
             )}
           </div>
 
-          {/* Coluna das Informações (Título, Preço, Descrição) */}
-          <div className="flex-1 space-y-2">
-            <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-neutral-100 leading-tight">
+          {/* Coluna das Informações */}
+          <div className="flex-1 min-w-0 flex flex-col justify-center h-36 sm:h-56"> 
+            {/* min-w-0 ajuda o texto a não estourar a largura no flexbox */}
+            
+            <h2 className="text-lg sm:text-2xl font-bold text-neutral-900 dark:text-neutral-100 leading-tight mb-1 line-clamp-2">
               {product.name}
             </h2>
             
-            <div className="flex items-baseline gap-2">
-              <span className="text-xl sm:text-2xl font-bold" style={{ color: '#9d0094' }}>
+            <div className="flex items-baseline gap-2 mb-2">
+              <span className="text-xl sm:text-3xl font-bold" style={{ color: '#9d0094' }}>
                 R$ {Number(product.price || 0).toFixed(2)}
               </span>
               {product.hasPromo && product.originalPrice && (
-                <span className="text-sm text-neutral-400 line-through">
+                <span className="text-xs sm:text-sm text-neutral-400 line-through">
                   R$ {Number(product.originalPrice).toFixed(2)}
                 </span>
               )}
             </div>
 
-            <p className="text-neutral-600 dark:text-neutral-400 text-sm leading-relaxed">
+            <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed line-clamp-3 sm:line-clamp-none">
               {product.description}
             </p>
           </div>
