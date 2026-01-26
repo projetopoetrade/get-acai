@@ -31,7 +31,8 @@ export function ProductCard({ product }: ProductCardProps) {
 
         {/* Imagem do Produto */}
         {/* ✅ MUDANÇA 1: Fundo branco limpo (sem degradê) */}
-        <div className="relative aspect-square overflow-hidden bg-white border-b border-neutral-100 dark:border-neutral-800">
+      {/* Imagem do Produto */}
+      <div className="relative aspect-square overflow-hidden bg-white border-b border-neutral-100 dark:border-neutral-800">
           {imageError ? (
             <div className="absolute inset-0 flex items-center justify-center bg-neutral-50 dark:bg-neutral-900">
               <Cherry className="w-16 h-16" style={{ color: '#c69abf' }} />
@@ -41,13 +42,14 @@ export function ProductCard({ product }: ProductCardProps) {
               src={product.imageUrl}
               alt={product.name}
               fill
-              className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
+              /* ✅ ALTERAÇÃO AQUI: Removido 'p-2'. Mantido 'object-contain'. */
+              className="object-contain group-hover:scale-105 transition-transform duration-300"
               sizes="(max-width: 768px) 50vw, 25vw"
               onError={() => setImageError(true)}
             />
           )}
-        </div>
 
+        </div>
         {/* Conteúdo */}
         <div className="p-3 space-y-2 flex-1 flex flex-col justify-between">
           <div className="min-h-[60px]">
