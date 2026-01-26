@@ -6,42 +6,31 @@ import { logout } from '@/lib/auth'; // Importe a Server Action que criamos
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 export function LogoutButton() {
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const handleLogout = async () => {
-    setIsLoading(true);
-    
     try {
-      // 1. Limpa localStorage e sessionStorage imediatamente
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user');
-        // Limpa o cookie no client side por garantia (nome correto: auth_token)
-        document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-      }
-
-      // 2. Chama a Server Action (ela vai deletar o cookie no servidor e redirecionar)
-      await logout();
+      // 1. Chama a server action (que SÓ apaga o cookie, sem redirect)
+      await logout(); 
       
-      toast.success('Até logo!');
+      // 2. Redireciona no cliente (mais seguro contra o erro que você teve)
+      router.replace('/login');
+      router.refresh(); // Garante que limpe o cache do cliente
+      
     } catch (error) {
-      console.error('Erro no logout:', error);
-      toast.error('Erro ao sair da conta');
-      setIsLoading(false);
+      console.error("Erro no logout", error);
     }
   };
 
   return (
-    <Button
-      onClick={handleLogout}
-      disabled={isLoading}
-      variant="outline"
-      className="w-full h-12 text-red-600 border-red-200 hover:bg-red-50 font-semibold text-base rounded-xl"
-    >
-      <LogOut className="w-5 h-5 mr-2" />
-      {isLoading ? 'Saindo...' : 'Sair da Conta'}
-    </Button>
+    <button onClick={handleLogout} className="...">
+      <LogOut className="w-4 h-4 mr-2" />
+      Sair
+    </button>
   );
 }
+
