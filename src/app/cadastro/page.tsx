@@ -1,4 +1,3 @@
-// src/app/cadastro/page.tsx
 'use client';
 
 import { useState } from 'react';
@@ -10,6 +9,17 @@ import { Button } from '@/components/ui/button';
 import { registerSchema, type RegisterFormData } from '@/lib/validations';
 import { formatPhone, unformatPhone } from '@/lib/phone-format';
 import { toast } from 'sonner';
+import { Info } from 'lucide-react'; // Importei um ícone para o aviso (opcional)
+
+// Função auxiliar para formatar CPF (pode mover para um arquivo lib depois)
+const formatCpf = (value: string) => {
+  return value
+    .replace(/\D/g, '') // Remove tudo o que não é dígito
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+    .replace(/(-\d{2})\d+?$/, '$1'); // Limita o tamanho
+};
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -17,10 +27,13 @@ export default function RegisterPage() {
     name: '',
     email: '',
     phone: '',
+    cpf: '', // ✅ Novo campo
     password: '',
     confirmPassword: '',
   });
+  
   const [formattedPhone, setFormattedPhone] = useState('');
+  const [formattedCpf, setFormattedCpf] = useState(''); // ✅ Estado visual do CPF
   const [errors, setErrors] = useState<Partial<Record<keyof RegisterFormData, string>>>({});
   const [isLoading, setIsLoading] = useState(false);
 
@@ -36,6 +49,14 @@ export default function RegisterPage() {
     setFormattedPhone(formatted);
     const numbersOnly = unformatPhone(formatted);
     updateField('phone', numbersOnly);
+  };
+
+  // ✅ Manipulador do CPF
+  const handleCpfChange = (value: string) => {
+    const formatted = formatCpf(value);
+    setFormattedCpf(formatted);
+    const numbersOnly = value.replace(/\D/g, ''); // Remove formatação para salvar
+    updateField('cpf', numbersOnly);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -136,27 +157,61 @@ export default function RegisterPage() {
                 )}
               </div>
 
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
-                  Telefone
-                </label>
-                <input
-                  id="phone"
-                  type="tel"
-                  value={formattedPhone}
-                  onChange={(e) => handlePhoneChange(e.target.value)}
-                  placeholder="(71) 9 9999-9999"
-                  maxLength={15}
-                  className={`w-full px-4 py-3 rounded-xl border-2 bg-transparent focus:outline-none transition-colors ${
-                    errors.phone
-                      ? 'border-red-500 focus:border-red-500'
-                      : 'border-neutral-200 dark:border-neutral-700 focus:border-[#9d0094]'
-                  }`}
-                  disabled={isLoading}
-                />
-                {errors.phone && (
-                  <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">{errors.phone}</p>
-                )}
+              {/* Grid para Telefone e CPF ficarem alinhados ou um abaixo do outro */}
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
+                    Telefone
+                  </label>
+                  <input
+                    id="phone"
+                    type="tel"
+                    value={formattedPhone}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
+                    placeholder="(71) 9 9999-9999"
+                    maxLength={15}
+                    className={`w-full px-4 py-3 rounded-xl border-2 bg-transparent focus:outline-none transition-colors ${
+                      errors.phone
+                        ? 'border-red-500 focus:border-red-500'
+                        : 'border-neutral-200 dark:border-neutral-700 focus:border-[#9d0094]'
+                    }`}
+                    disabled={isLoading}
+                  />
+                  {errors.phone && (
+                    <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">{errors.phone}</p>
+                  )}
+                </div>
+
+                {/* ✅ Campo de CPF Adicionado */}
+                <div>
+                  <label htmlFor="cpf" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
+                    CPF
+                  </label>
+                  <input
+                    id="cpf"
+                    type="text"
+                    value={formattedCpf}
+                    onChange={(e) => handleCpfChange(e.target.value)}
+                    placeholder="000.000.000-00"
+                    maxLength={14}
+                    className={`w-full px-4 py-3 rounded-xl border-2 bg-transparent focus:outline-none transition-colors ${
+                      errors.cpf
+                        ? 'border-red-500 focus:border-red-500'
+                        : 'border-neutral-200 dark:border-neutral-700 focus:border-[#9d0094]'
+                    }`}
+                    disabled={isLoading}
+                  />
+                  {/* ✅ Aviso sobre o PIX */}
+                  <div className="mt-2 flex items-start gap-2 text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-800/50 p-2 rounded-lg border border-neutral-100 dark:border-neutral-800">
+                    <Info className="w-4 h-4 text-[#9d0094] flex-shrink-0 mt-0.5" />
+                    <span>
+                      Necessário para emissão de notas fiscais e validação de transações via <strong>PIX</strong>.
+                    </span>
+                  </div>
+                  {errors.cpf && (
+                    <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">{errors.cpf}</p>
+                  )}
+                </div>
               </div>
 
               <div>

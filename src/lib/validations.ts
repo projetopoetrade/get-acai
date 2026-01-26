@@ -12,18 +12,18 @@ export const loginSchema = z.object({
   password: z.string().min(6, 'A senha deve ter no mínimo 6 caracteres'),
 });
 
-export const registerSchema = z
-  .object({
-    name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
-    email: z.string().email('Email inválido'),
-    phone: z.string().regex(/^\d{10,11}$/, 'Telefone inválido'),
-    password: z.string().min(6, 'A senha deve ter no mínimo 6 caracteres'),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: 'As senhas não coincidem',
-    path: ['confirmPassword'],
-  });
+export const registerSchema = z.object({
+  name: z.string().min(3, "Nome muito curto"),
+  email: z.string().email("Email inválido"),
+  phone: z.string().min(10, "Telefone inválido"),
+  // 👇 Adicione esta linha
+  cpf: z.string().min(11, "CPF inválido").max(14, "CPF inválido"), 
+  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
+  confirmPassword: z.string()
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "As senhas não coincidem",
+  path: ["confirmPassword"],
+});
 
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;

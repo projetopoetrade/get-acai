@@ -52,35 +52,52 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       console.error('Erro de conexão socket:', err.message);
     });
 
-    // 4. LÓGICA DE NEGÓCIO (O som e o alerta)
     socketInstance.on('newOrder', (order: any) => {
-      console.log('🔔 Novo pedido recebido:', order.id);
-
-      // Tocar Som
-      try {
-        const audio = new Audio('/sounds/notification.mp3');
-        audio.volume = 0.8;
-        audio.play().catch((e) => console.log('Autoplay bloqueado pelo navegador:', e));
-      } catch (error) {
-        console.error('Erro ao tocar som', error);
-      }
-
-      // Mostrar Notificação Visual (Toast)
-      toast.success(`💰 Novo Pedido: R$ ${Number(order.total).toFixed(2)}`, {
-        duration: 10000, // Fica 10 segundos na tela
-        position: 'top-right',
-        action: {
-          label: 'Ver Pedidos',
-          onClick: () => window.location.href = '/admin/pedidos'
-        },
-        style: {
-          background: '#10b981', // Verde
-          color: 'white',
-          border: 'none',
-          fontSize: '16px'
-        }
+        console.log('🔔 Novo pedido recebido:', order.id);
+  
+        const playNotificationSound = () => {
+          const audio = new Audio('/sounds/notification.mp3');
+          audio.volume = 0.8;
+          
+          audio.play().catch((error) => {
+            console.log('Autoplay bloqueado:', error);
+            
+            // SE O NAVEGADOR BLOQUEAR, MOSTRA UM BOTÃO NO TOAST
+            if (error.name === 'NotAllowedError') {
+              toast.error('🔊 Clique para ativar o som de novos pedidos', {
+                duration: Infinity, // Fica na tela até clicar
+                action: {
+                  label: 'ATIVAR SOM',
+                  onClick: () => {
+                    audio.play(); // Esse clique libera o áudio para sempre nessa sessão
+                    toast.dismiss();
+                    toast.success('Som ativado!');
+                  }
+                }
+              });
+            }
+          });
+        };
+  
+        // Tenta tocar
+        playNotificationSound();
+  
+        // Mostrar Notificação Visual (Toast do Pedido)
+        toast.success(`💰 Novo Pedido: R$ ${Number(order.total).toFixed(2)}`, {
+          duration: 10000,
+          position: 'top-right',
+          action: {
+            label: 'Ver Pedidos',
+            onClick: () => window.location.href = '/admin/pedidos'
+          },
+          style: {
+            background: '#10b981',
+            color: 'white',
+            border: 'none',
+            fontSize: '16px'
+          }
+        });
       });
-    });
 
     setSocket(socketInstance);
 
