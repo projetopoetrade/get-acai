@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,7 +59,6 @@ export function AddressModal({ isOpen, onClose, onSave }: AddressModalProps) {
 
   const handleChange = (field: keyof AddressFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Remove erro do campo ao digitar
     if (errors[field]) {
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -83,7 +82,6 @@ export function AddressModal({ isOpen, onClose, onSave }: AddressModalProps) {
 
     setIsSubmitting(true);
     try {
-      // Converte zipCode para cep e cria o endereço
       const addressData = {
         label: result.data.label,
         cep: result.data.zipCode.replace(/\D/g, ''),
@@ -102,7 +100,6 @@ export function AddressModal({ isOpen, onClose, onSave }: AddressModalProps) {
       onSave(newAddress);
       onClose();
       
-      // Reset form
       setFormData({
         label: '',
         zipCode: '',
@@ -125,11 +122,24 @@ export function AddressModal({ isOpen, onClose, onSave }: AddressModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 pb-24 sm:pb-6">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+      {/* Overlay Escuro */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       
-      <div className="relative bg-white dark:bg-neutral-900 w-full max-w-md sm:max-w-lg rounded-2xl shadow-2xl overflow-hidden max-h-[calc(100vh-10rem)] sm:max-h-none sm:overflow-visible mb-4 sm:mb-6">
-        <div className="px-4 py-4 sm:px-6 sm:py-5 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center sticky top-0 bg-white dark:bg-neutral-900 z-10">
+      {/* Container do Modal */}
+      <div className="
+        relative 
+        bg-white dark:bg-neutral-900 
+        w-full max-w-md sm:max-w-lg 
+        rounded-2xl 
+        shadow-2xl 
+        border border-neutral-200 dark:border-neutral-800
+        flex flex-col 
+        max-h-[90vh] /* ✅ Limita a altura em 90% da tela */
+      ">
+        
+        {/* Cabeçalho Fixo */}
+        <div className="px-4 py-4 sm:px-6 sm:py-5 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center shrink-0">
           <h2 className="text-lg sm:text-xl font-bold text-neutral-900 dark:text-neutral-100">Adicionar Endereço</h2>
           <button 
             onClick={onClose} 
@@ -140,7 +150,11 @@ export function AddressModal({ isOpen, onClose, onSave }: AddressModalProps) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-3 sm:space-y-3.5">
+        {/* Formulário com Scroll */}
+        <form 
+          onSubmit={handleSubmit} 
+          className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1" /* ✅ Scroll aqui */
+        >
           {/* Label */}
           <div className="space-y-1.5">
             <Label htmlFor="label" className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
@@ -153,7 +167,7 @@ export function AddressModal({ isOpen, onClose, onSave }: AddressModalProps) {
               placeholder="Ex: Casa, Trabalho"
               className={`h-10 sm:h-11 ${errors.label ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
             />
-            {errors.label && <span className="text-red-500 text-xs mt-1 block">{errors.label}</span>}
+            {errors.label && <span className="text-red-500 text-xs block">{errors.label}</span>}
           </div>
 
           {/* CEP */}
@@ -175,7 +189,7 @@ export function AddressModal({ isOpen, onClose, onSave }: AddressModalProps) {
                 <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-[#9d0094]" />
               )}
             </div>
-            {errors.zipCode && <span className="text-red-500 text-xs mt-1 block">{errors.zipCode}</span>}
+            {errors.zipCode && <span className="text-red-500 text-xs block">{errors.zipCode}</span>}
           </div>
 
           {/* Rua */}
@@ -190,7 +204,7 @@ export function AddressModal({ isOpen, onClose, onSave }: AddressModalProps) {
               placeholder="Nome da rua"
               className={`h-10 sm:h-11 ${errors.street ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
             />
-            {errors.street && <span className="text-red-500 text-xs mt-1 block">{errors.street}</span>}
+            {errors.street && <span className="text-red-500 text-xs block">{errors.street}</span>}
           </div>
 
           {/* Número e Complemento */}
@@ -206,7 +220,7 @@ export function AddressModal({ isOpen, onClose, onSave }: AddressModalProps) {
                 placeholder="123"
                 className={`h-10 sm:h-11 ${errors.number ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
               />
-              {errors.number && <span className="text-red-500 text-xs mt-1 block">{errors.number}</span>}
+              {errors.number && <span className="text-red-500 text-xs block">{errors.number}</span>}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="complement" className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
@@ -234,7 +248,7 @@ export function AddressModal({ isOpen, onClose, onSave }: AddressModalProps) {
               placeholder="Nome do bairro"
               className={`h-10 sm:h-11 ${errors.neighborhood ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
             />
-            {errors.neighborhood && <span className="text-red-500 text-xs mt-1 block">{errors.neighborhood}</span>}
+            {errors.neighborhood && <span className="text-red-500 text-xs block">{errors.neighborhood}</span>}
           </div>
 
           {/* Cidade e Estado */}
@@ -250,7 +264,7 @@ export function AddressModal({ isOpen, onClose, onSave }: AddressModalProps) {
                 placeholder="Cidade"
                 className={`h-10 sm:h-11 ${errors.city ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
               />
-              {errors.city && <span className="text-red-500 text-xs mt-1 block">{errors.city}</span>}
+              {errors.city && <span className="text-red-500 text-xs block">{errors.city}</span>}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="state" className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
@@ -264,7 +278,7 @@ export function AddressModal({ isOpen, onClose, onSave }: AddressModalProps) {
                 maxLength={2}
                 className={`h-10 sm:h-11 ${errors.state ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
               />
-              {errors.state && <span className="text-red-500 text-xs mt-1 block">{errors.state}</span>}
+              {errors.state && <span className="text-red-500 text-xs block">{errors.state}</span>}
             </div>
           </div>
 
@@ -282,8 +296,8 @@ export function AddressModal({ isOpen, onClose, onSave }: AddressModalProps) {
             />
           </div>
 
-          {/* Botões */}
-          <div className="flex gap-3 pt-3 border-t border-neutral-200 dark:border-neutral-800">
+          {/* Botões - Sticky no rodapé */}
+          <div className="flex gap-3 pt-4 border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 sticky bottom-0 z-10 pb-2">
             <Button
               type="button"
               variant="outline"
