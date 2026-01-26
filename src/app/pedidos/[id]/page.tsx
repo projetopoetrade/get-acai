@@ -243,33 +243,48 @@ export default function OrderDetailsPage() {
                 <ShoppingBag className="w-4 h-4 md:w-5 md:h-5 text-[#9d0094]" /> Resumo
               </h3>
 
-              {/* Lista de Itens Compacta */}
-              <div className="space-y-3 md:space-y-4">
-                {order.items.map((item: any, idx: number) => (
-                  <div key={idx} className="flex gap-3">
-                    <div className="w-8 h-8 md:w-10 md:h-10 bg-neutral-100 dark:bg-neutral-800 rounded-lg flex items-center justify-center font-bold text-xs md:text-sm text-neutral-600 dark:text-neutral-400 shrink-0">
-                      {item.quantity}x
+              <div className="space-y-4 md:space-y-6">
+                {order.items.map((item: any, idx: number) => {
+                  const toppings = item.toppings || item.customization?.toppings || [];
+
+                  return (
+                    <div key={idx} className="space-y-2">
+                      <div className="flex gap-3">
+                        <div className="w-8 h-8 md:w-10 md:h-10 bg-neutral-100 dark:bg-neutral-800 rounded-lg flex items-center justify-center font-bold text-xs md:text-sm text-neutral-600 dark:text-neutral-400 shrink-0">
+                          {item.quantity}x
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-xs md:text-sm text-neutral-900 dark:text-white truncate">
+                            {item.productName}
+                          </p>
+
+                          {/* ✅ LISTA DE TOPPINGS COM PREÇO */}
+                          {toppings.length > 0 && (
+                            <ul className="mt-1.5 space-y-1">
+                              {toppings.map((t: any, tIdx: number) => (
+                                <li key={tIdx} className="text-[10px] md:text-xs text-neutral-500 flex justify-between">
+                                  <span>+ {t.toppingName || t.name}</span>
+                                  {Number(t.price) > 0 && (
+                                    <span className="text-neutral-400">R$ {Number(t.price).toFixed(2)}</span>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+
+                          {item.notes && (
+                            <p className="text-[9px] text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded-md inline-block mt-2">
+                              Obs: {item.notes}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-xs md:text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                          R$ {Number(item.subtotal).toFixed(2)}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-xs md:text-sm text-neutral-900 dark:text-white truncate">
-                        {item.productName}
-                      </p>
-                      {item.toppings?.length > 0 && (
-                        <p className="text-[10px] md:text-xs text-neutral-500 mt-0.5 line-clamp-2">
-                          + {item.toppings.map((t: any) => t.toppingName).join(', ')}
-                        </p>
-                      )}
-                      {item.notes && (
-                        <p className="text-[9px] text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded-md inline-block mt-1">
-                          Obs: {item.notes}
-                        </p>
-                      )}
-                    </div>
-                    <div className="text-xs md:text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                      R$ {Number(item.subtotal).toFixed(2)}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="border-t border-dashed border-neutral-200 dark:border-neutral-800 my-3" />

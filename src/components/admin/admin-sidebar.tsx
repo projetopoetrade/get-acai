@@ -13,7 +13,9 @@ import {
   Settings,
   BarChart3,
   Menu,
-  X
+  X,
+  UploadCloud, // ✅ Novo ícone importado
+  Users
 } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
@@ -25,9 +27,11 @@ const menuItems = [
   { icon: Cookie, label: 'Toppings', href: '/admin/toppings' },
   { icon: Layers, label: 'Categorias', href: '/admin/categorias' },
   { icon: PackageCheck, label: 'Estoque', href: '/admin/estoque' },
+  { icon: UploadCloud, label: 'Uploads', href: '/admin/upload' }, // ✅ Nova rota adicionada
   { icon: MapPin, label: 'Bairros', href: '/admin/bairros' },
   { icon: BarChart3, label: 'Relatórios', href: '/admin/relatorios' },
   { icon: Settings, label: 'Configurações', href: '/admin/configuracoes' },
+  { icon: Users, label: 'Usuários', href: '/admin/usuarios' },
 ]
 
 export function AdminSidebar() {
@@ -119,7 +123,7 @@ export function AdminSidebar() {
           {/* Footer */}
           <div className="p-4 border-t-2 border-neutral-200 dark:border-neutral-800">
             <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center">
-              © 2025 GetAçaí
+              © 2026 GetAçaí
             </p>
           </div>
         </div>

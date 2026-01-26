@@ -85,40 +85,37 @@ export function ToppingLimitsManager({ toppingCategories, sizeToppingLimits: ini
   const handleUpdate = async (categoryId: string) => {
     const limitValue = limits[categoryId] || getCurrentLimit(categoryId)
     const limitNumber = parseInt(limitValue) || 0
-
+  
     setLoading({ ...loading, [categoryId]: true })
-
+  
     try {
       const existing = initialLimits.find(
         l => l.size === selectedSize && l.category === categoryId
       )
-
-      const url = existing?.id
-        ? `${process.env.NEXT_PUBLIC_API_URL}/size-topping-limits/${existing.id}`
-        : `${process.env.NEXT_PUBLIC_API_URL}/size-topping-limits`
-
-      const method = existing?.id ? 'PATCH' : 'POST'
-
+  
+      // Ajuste a URL para incluir '/products' se necessário, conforme seu teste no Postman
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/products/admin/size-topping-limits`
+  
+      // O Postman mostra que o endpoint aceita PATCH para criar/atualizar
       const response = await fetch(url, {
-        method,
+        method: 'PATCH', 
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token')}`
         },
         body: JSON.stringify({
-          size: selectedSize,
-          category: categoryId,
-          limit: limitNumber,
-          ...(existing?.id && { id: existing.id })
+          sizeId: selectedSize,         // Nome correto conforme Postman
+          toppingCategoryId: categoryId, // Nome correto conforme Postman
+          maxQuantity: limitNumber       // Nome correto conforme Postman
         })
       })
-
+  
       if (response.ok) {
         toast.success('Limite atualizado!')
         router.refresh()
       } else {
-        const error = await response.text()
-        console.error('Erro ao atualizar limite:', error)
+        const errorText = await response.text()
+        console.error('Erro ao atualizar limite:', errorText)
         toast.error('Erro ao atualizar limite')
       }
     } catch (error) {
@@ -128,7 +125,6 @@ export function ToppingLimitsManager({ toppingCategories, sizeToppingLimits: ini
       setLoading({ ...loading, [categoryId]: false })
     }
   }
-
   const updateLimit = (categoryId: string, value: string) => {
     setLimits({
       ...limits,

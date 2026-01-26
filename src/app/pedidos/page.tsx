@@ -239,31 +239,40 @@ function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
               <Receipt className="w-4 h-4" />
               Itens do pedido
             </h4>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {order.items.map((item, idx) => {
                 const productName = item.product?.name || item.productName || 'Produto';
                 const toppings = item.toppings || item.customization?.toppings || [];
 
-                const getToppingName = (topping: any): string => {
-                  if (topping && typeof topping === 'object') {
-                    if ('toppingName' in topping && topping.toppingName) return String(topping.toppingName);
-                    if ('name' in topping && topping.name) return String(topping.name);
-                  }
-                  return 'Topping';
-                };
-
                 return (
-                  <div key={idx} className="flex justify-between items-start p-2 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">
+                  <div key={idx} className="p-3 bg-neutral-50 dark:bg-neutral-800 rounded-xl border border-neutral-100 dark:border-neutral-700">
+                    <div className="flex justify-between items-start mb-1">
+                      <p className="font-bold text-sm">
                         {item.quantity}x {productName}
                       </p>
-                      {toppings.length > 0 && (
-                        <p className="text-xs text-neutral-500 mt-0.5">
-                          + {toppings.map(getToppingName).join(', ')}
-                        </p>
-                      )}
+                      {/* Opcional: mostrar subtotal do item aqui se sua API enviar */}
+                      {item.subtotal && <span className="text-xs font-semibold">R$ {Number(item.subtotal).toFixed(2)}</span>}
                     </div>
+
+                    {/* ✅ LISTA DETALHADA DE TOPPINGS NO CARD EXPANDIDO */}
+                    {toppings.length > 0 && (
+                      <div className="mt-2 pl-2 border-l-2 border-neutral-200 dark:border-neutral-600 space-y-1">
+                        {toppings.map((t: any, tIdx: number) => (
+                          <div key={tIdx} className="flex justify-between text-[11px] text-neutral-500">
+                            <span>{t.toppingName || t.name}</span>
+                            {Number(t.price) > 0 && (
+                              <span className="font-medium">R$ {Number(t.price).toFixed(2)}</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {item.notes && (
+                      <p className="text-[10px] text-amber-600 mt-2 italic">
+                        " {item.notes} "
+                      </p>
+                    )}
                   </div>
                 );
               })}
