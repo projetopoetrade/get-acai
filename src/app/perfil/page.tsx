@@ -1,8 +1,7 @@
-// src/app/perfil/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation'; // ✅ Adicionado usePathname
 import { Header } from '@/components/layout/header';
 import { ProfileForm } from '@/components/profile/profile-form';
 import { ChangePasswordForm } from '@/components/profile/change-password-form';
@@ -12,51 +11,42 @@ import type { User } from '@/types/auth';
 
 export default function ProfilePage() {
   const router = useRouter();
+  const pathname = usePathname(); // ✅ Pega a rota atual ("/perfil")
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadUser = async () => {
       try {
-        // ✅ Busca usuário da API (mais seguro - valida token no servidor)
         const { authService } = await import('@/services/auth');
         const userData = await authService.getCurrentUser();
 
         if (userData) {
           setUser(userData);
-          // Salva no localStorage apenas para cache (não é fonte de verdade)
           localStorage.setItem('user', JSON.stringify(userData));
         } else {
-          // Se não encontrou, tenta fallback do localStorage (para casos de offline)
+          // Tenta cache local
           const userStr = localStorage.getItem('user');
           if (userStr) {
-            try {
-              const cachedUser = JSON.parse(userStr);
-              setUser(cachedUser);
-            } catch (e) {
-              console.error('Erro ao parsear cache:', e);
-            }
+            setUser(JSON.parse(userStr));
+          } else {
+            // ✅ REDIRECIONAMENTO AUTOMÁTICO (Opcional, mas recomendado)
+            // Se não tiver usuário nem no cache, já manda pro login direto
+            // router.push(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
           }
         }
       } catch (error) {
         console.error('Erro ao carregar usuário:', error);
-        // Fallback: tenta buscar do localStorage
+        // Fallback
         const userStr = localStorage.getItem('user');
-        if (userStr) {
-          try {
-            const cachedUser = JSON.parse(userStr);
-            setUser(cachedUser);
-          } catch (e) {
-            console.error('Erro ao parsear cache:', e);
-          }
-        }
+        if (userStr) setUser(JSON.parse(userStr));
       } finally {
         setLoading(false);
       }
     };
 
     loadUser();
-  }, []);
+  }, [pathname, router]); // Adicionado deps
 
   if (loading) {
     return (
@@ -70,20 +60,20 @@ export default function ProfilePage() {
   }
 
   if (!user) {
-    // Se não encontrou usuário, mostra mensagem ou redireciona
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <Header />
         <div className="flex-1 flex items-center justify-center px-4">
           <div className="text-center">
             <p className="text-neutral-600 dark:text-neutral-400 mb-4">
-              Não foi possível carregar seus dados. Por favor, faça login novamente.
+              Você precisa estar logado para acessar esta página.
             </p>
+            {/* ✅ BOTÃO ATUALIZADO: */}
             <button
-              onClick={() => router.push('/login')}
-              className="px-4 py-2 bg-[#9d0094] text-white rounded-xl"
+              onClick={() => router.push(`/login?callbackUrl=${encodeURIComponent(pathname)}`)}
+              className="px-4 py-2 bg-[#9d0094] text-white rounded-xl font-medium"
             >
-              Ir para Login
+              Fazer Login
             </button>
           </div>
         </div>

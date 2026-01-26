@@ -1,8 +1,7 @@
-// src/app/login/page.tsx
 'use client';
 
 import { useState, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation'; // ✅ Adicionado useSearchParams
 import Link from 'next/link';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
@@ -11,9 +10,11 @@ import { toast } from 'sonner';
 import { setAuthCookie } from '../actions/auth';
 
 
-// Componente Interno para o Conteúdo
 function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams(); // ✅ Hook para ler a URL
+  const callbackUrl = searchParams.get('callbackUrl') || '/'; // ✅ Pega a url de retorno ou define '/' como padrão
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<Partial<Record<keyof LoginFormData, string>>>({});
@@ -53,25 +54,27 @@ function LoginContent() {
       }
 
       const token = data.token || data.access_token;
-      if (token) {localStorage.setItem('auth_token', token);
+      if (token) {
+        localStorage.setItem('auth_token', token);
         await setAuthCookie(token);
       }
 
-
-
       if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
-      
 
       toast.success('Login realizado com sucesso!');
-      router.push('/');
+      
+      // ✅ MUDANÇA PRINCIPAL AQUI:
+      // Redireciona para a url de origem (callbackUrl) em vez de sempre para a home
+      router.push(callbackUrl); 
       router.refresh();
+
     } catch (error: any) {
       console.error('Login Error:', error);
       toast.error(error.message || 'Falha na conexão com o servidor');
     } finally {
-      setIsLoading(false); // ✅ Adicionado para destravar o botão em caso de erro
+      setIsLoading(false);
     }
-  }; // ✅ A chave do handleSubmit agora fecha AQUI
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -149,7 +152,8 @@ function LoginContent() {
 
             <div className="mt-6 text-center text-sm text-neutral-600 dark:text-neutral-400">
               Não tem uma conta?{' '}
-              <Link href="/cadastro" className="text-[#9d0094] font-medium hover:underline">
+              {/* ✅ Mantém o callbackUrl também no link de cadastro, caso queira implementar lá depois */}
+              <Link href={`/cadastro?callbackUrl=${encodeURIComponent(callbackUrl)}`} className="text-[#9d0094] font-medium hover:underline">
                 Cadastre-se
               </Link>
             </div>
@@ -160,7 +164,6 @@ function LoginContent() {
   );
 }
 
-// ✅ Export Default com Suspense para evitar tela branca por causa da URL
 export default function LoginPage() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-background" />}>

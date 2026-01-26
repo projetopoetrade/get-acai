@@ -1,10 +1,9 @@
-// src/components/profile/profile-form.tsx
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation'; // ADICIONAR ISSO
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { updateProfile } from '@/lib/auth';
+import { updateProfile } from '@/lib/auth'; 
 import { updateProfileSchema, type UpdateProfileFormData } from '@/lib/validations';
 import { formatPhone, unformatPhone } from '@/lib/phone-format';
 import { toast } from 'sonner';
@@ -12,11 +11,10 @@ import type { User } from '@/types/auth';
 
 interface ProfileFormProps {
   user: User;
-  // REMOVER onUpdate daqui
 }
 
-export function ProfileForm({ user }: ProfileFormProps) { // REMOVER onUpdate
-  const router = useRouter(); // ADICIONAR ISSO
+export function ProfileForm({ user }: ProfileFormProps) {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     name: user.name,
     phone: user.phone || '',
@@ -58,21 +56,34 @@ export function ProfileForm({ user }: ProfileFormProps) { // REMOVER onUpdate
       return;
     }
 
-    const authResult = await updateProfile(result.data);
+    try {
+      // ✅ PASSO CRUCIAL: Pegar token do navegador
+      const token = localStorage.getItem('auth_token');
 
-    if (authResult.success) {
-      toast.success('Perfil atualizado com sucesso!');
-      router.refresh(); // USAR ISSO AO INVÉS DE onUpdate
-    } else {
-      toast.error(authResult.error || 'Erro ao atualizar perfil');
-      setErrors({ name: authResult.error });
+      // ✅ Enviar token para a Server Action
+      // @ts-ignore (caso o typescript reclame antes de você salvar o arquivo lib/auth.ts)
+      const authResult = await updateProfile(result.data, token);
+
+      if (authResult.success) {
+        toast.success('Perfil atualizado com sucesso!');
+        router.refresh();
+      } else {
+        toast.error(authResult.error || 'Erro ao atualizar perfil');
+        if (authResult.error && !authResult.error.includes('logado')) {
+             setErrors({ name: authResult.error });
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Erro de comunicação. Tente novamente.');
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* SEUS CAMPOS DE INPUT (MANTENHA IGUAL AO QUE JÁ TEM) */}
       <div>
         <label htmlFor="name" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
           Nome completo

@@ -1,12 +1,11 @@
-// src/app/produto/[id]/page.tsx
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { 
-  ArrowLeft, Minus, Plus, Check, UtensilsCrossed, Cherry, X, 
-  Maximize2, Share2, ChevronDown 
+  ArrowLeft, Minus, Plus, Check, UtensilsCrossed, Cherry, 
+  X, Maximize2, ChevronDown, ChevronUp 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +19,6 @@ import { Product, ProductCategory } from '@/types/product';
 import { sanitizeObservations } from '@/lib/sanitize';
 import type { ToppingCategory } from '@/data/toppings-config';
 
-// ... (MANTENHA AS CONSTANTES TOPPING_CATEGORY_LABELS E ALL_TOPPING_CATEGORIES AQUI) ...
 const TOPPING_CATEGORY_LABELS: Record<ToppingCategory, string> = {
   frutas: 'Frutas',
   complementos: 'Complementos',
@@ -31,14 +29,12 @@ const TOPPING_CATEGORY_LABELS: Record<ToppingCategory, string> = {
 
 const ALL_TOPPING_CATEGORIES: ToppingCategory[] = ['frutas', 'complementos', 'cremes', 'caldas', 'extras'];
 
-
 export default function ProductPage() {
   const params = useParams();
   const router = useRouter();
   const { addItem } = useCart();
   const productId = params.id as string;
 
-  // Estados
   const [product, setProduct] = useState<Product | null>(null);
   const [toppings, setToppings] = useState<Topping[]>([]);
   const [toppingLimits, setToppingLimits] = useState<Record<string, Record<ToppingCategory, number>>>({});
@@ -50,73 +46,61 @@ export default function ProductPage() {
   const [observations, setObservations] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [imageError, setImageError] = useState(false);
-  
-  // ✅ NOVO ESTADO: Controla a imagem em tela cheia
-  const [isImageExpanded, setIsImageExpanded] = useState(false);
 
-  // ... (MANTENHA O USEEFFECT DE CARREGAMENTO DE DADOS IGUAL AO ANTERIOR) ...
+  // Estados Visuais
+  const [isMobileExpanded, setIsMobileExpanded] = useState(false);
+  const [showDesktopModal, setShowDesktopModal] = useState(false);
+
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
         setError(null);
         const productData = await productsService.getOne(productId);
-        // ... (Lógica de mapeamento igual ao código anterior) ...
+        
         const mappedProduct: Product = {
-            id: productData.id,
-            name: productData.name,
-            description: productData.description || '',
-            price: typeof productData.price === 'string' ? parseFloat(productData.price) : Number(productData.price) || 0,
-            originalPrice: productData.originalPrice ? (typeof productData.originalPrice === 'string' ? parseFloat(productData.originalPrice) : Number(productData.originalPrice)) : undefined,
-            category: (() => {
-              const cat = productData.category;
-              const categoryName = typeof cat === 'string' ? cat : (cat as any)?.name || 'monte-seu';
-              return categoryName.toLowerCase() as ProductCategory;
-            })(),
-            imageUrl: productData.imageUrl || '/placeholder-product.jpg',
-            available: productData.available ?? true,
-            isCombo: (productData as any).isCombo,
-            isCustomizable: (productData as any).isCustomizable ?? true,
-            hasPromo: (productData as any).hasPromo,
-            promoText: (productData as any).promoText,
-            sizeId: (() => {
-                const size = (productData as any).size;
-                if (!size) return undefined;
-                const sizeName = (size.name || '').toLowerCase();
-                if (sizeName.includes('pequeno') || sizeName.includes('300')) return 'pequeno';
-                if (sizeName.includes('medio') || sizeName.includes('médio') || sizeName.includes('500')) return 'medio';
-                if (sizeName.includes('grande') || sizeName.includes('700')) return 'grande';
-                const sizeId = (size.id || '').toLowerCase();
-                if (sizeId.includes('pequeno') || sizeId.includes('300')) return 'pequeno';
-                if (sizeId.includes('medio') || sizeId.includes('médio') || sizeId.includes('500')) return 'medio';
-                if (sizeId.includes('grande') || sizeId.includes('700')) return 'grande';
-                return undefined;
-              })(),
-            sizeGroup: (productData as any).sizeGroup,
-          };
+          id: productData.id,
+          name: productData.name,
+          description: productData.description || '',
+          price: typeof productData.price === 'string' ? parseFloat(productData.price) : Number(productData.price) || 0,
+          originalPrice: productData.originalPrice ? (typeof productData.originalPrice === 'string' ? parseFloat(productData.originalPrice) : Number(productData.originalPrice)) : undefined,
+          category: (() => {
+            const cat = productData.category;
+            const categoryName = typeof cat === 'string' ? cat : (cat as any)?.name || 'monte-seu';
+            return categoryName.toLowerCase() as ProductCategory;
+          })(),
+          imageUrl: productData.imageUrl || '/placeholder-product.jpg',
+          available: productData.available ?? true,
+          isCombo: (productData as any).isCombo,
+          isCustomizable: (productData as any).isCustomizable ?? true,
+          hasPromo: (productData as any).hasPromo,
+          promoText: (productData as any).promoText,
+          sizeId: (productData as any).size?.id,
+          sizeGroup: (productData as any).sizeGroup,
+        };
         setProduct(mappedProduct);
 
         const toppingsData = await toppingsService.getAll();
         setToppings(toppingsData);
-        // Tenta carregar limites, se falhar usa vazio
+
         try {
-            const limitsData = await toppingsService.getProductLimits(productId);
-            const limitsMap: Record<string, Record<ToppingCategory, number>> = {};
-            limitsData.forEach(limit => {
-              if (!limitsMap[limit.sizeId]) {
-                limitsMap[limit.sizeId] = { frutas: 0, complementos: 0, cremes: 0, caldas: 0, extras: 0 };
-              }
-              const category = limit.toppingCategoryName.toLowerCase();
-              if (category.includes('fruta')) limitsMap[limit.sizeId].frutas = limit.maxQuantity;
-              else if (category.includes('complemento')) limitsMap[limit.sizeId].complementos = limit.maxQuantity;
-              else if (category.includes('creme')) limitsMap[limit.sizeId].cremes = limit.maxQuantity;
-              else if (category.includes('calda')) limitsMap[limit.sizeId].caldas = limit.maxQuantity;
-              else if (category.includes('extra') || category.includes('premium')) limitsMap[limit.sizeId].extras = limit.maxQuantity;
-            });
-            setToppingLimits(limitsMap);
-          } catch {
-            setToppingLimits({});
-          }
+          const limitsData = await toppingsService.getProductLimits(productId);
+          const limitsMap: Record<string, Record<ToppingCategory, number>> = {};
+          limitsData.forEach(limit => {
+            if (!limitsMap[limit.sizeId]) {
+              limitsMap[limit.sizeId] = { frutas: 0, complementos: 0, cremes: 0, caldas: 0, extras: 0 };
+            }
+            const category = limit.toppingCategoryName.toLowerCase();
+            if (category.includes('fruta')) limitsMap[limit.sizeId].frutas = limit.maxQuantity;
+            else if (category.includes('complemento')) limitsMap[limit.sizeId].complementos = limit.maxQuantity;
+            else if (category.includes('creme')) limitsMap[limit.sizeId].cremes = limit.maxQuantity;
+            else if (category.includes('calda')) limitsMap[limit.sizeId].caldas = limit.maxQuantity;
+            else if (category.includes('extra') || category.includes('premium')) limitsMap[limit.sizeId].extras = limit.maxQuantity;
+          });
+          setToppingLimits(limitsMap);
+        } catch {
+          setToppingLimits({});
+        }
       } catch (err: any) {
         console.error(err);
         setError('Erro ao carregar');
@@ -127,24 +111,19 @@ export default function ProductPage() {
     loadData();
   }, [productId]);
 
-  // ... (MANTENHA AS FUNÇÕES AUXILIARES: getToppingsByCategory, getToppingLimit, totalPrice, isFormValid, handlers) ...
   const getToppingsByCategory = (category: ToppingCategory): Topping[] => {
     return toppings.filter(t => t.category === category && (t.inStock || t.available)).sort((a, b) => a.order - b.order);
   };
+
   const getToppingLimit = (sizeId: string | undefined, category: ToppingCategory): number => {
     if (!sizeId) return 0;
     const sizeLimits = toppingLimits[sizeId];
     if (sizeLimits) return sizeLimits[category] || 0;
-    const defaultLimits: Record<ToppingCategory, number> = {
-      frutas: sizeId === 'pequeno' ? 2 : sizeId === 'medio' ? 3 : 4,
-      complementos: sizeId === 'pequeno' ? 2 : sizeId === 'medio' ? 3 : 4,
-      cremes: sizeId === 'pequeno' ? 1 : sizeId === 'medio' ? 1 : 2,
-      caldas: sizeId === 'pequeno' ? 1 : sizeId === 'medio' ? 2 : 2,
-      extras: 0,
-    };
-    return defaultLimits[category] || 0;
+    return 0;
   };
+
   const currentSizeId = product?.sizeId;
+
   const totalPrice = useMemo(() => {
     if (!product) return 0;
     let price = typeof product.price === 'number' ? product.price : Number(product.price) || 0;
@@ -154,8 +133,11 @@ export default function ProductPage() {
       const isExtras = category === 'extras';
       let totalInCategory = 0;
       categoryToppings.forEach((topping) => { totalInCategory += toppingQuantities[topping.id] || 0; });
+
       if (isExtras) {
-        categoryToppings.forEach((topping) => { price += topping.price * (toppingQuantities[topping.id] || 0); });
+        categoryToppings.forEach((topping) => {
+          price += topping.price * (toppingQuantities[topping.id] || 0);
+        });
       } else {
         const paidQuantity = Math.max(0, totalInCategory - freeLimit);
         if (paidQuantity > 0) {
@@ -176,7 +158,8 @@ export default function ProductPage() {
     freeCategories.forEach((category) => {
       const isSkipped = skippedCategories[category] || false;
       const hasSelection = getToppingsByCategory(category).some((topping) => (toppingQuantities[topping.id] || 0) > 0);
-      if (!isSkipped && !hasSelection) errors.push('erro');
+      const limit = getToppingLimit(currentSizeId, category);
+      if (limit > 0 && !isSkipped && !hasSelection) errors.push('erro');
     });
     if (wantsCutlery === null) errors.push('erro');
     return errors.length === 0;
@@ -186,6 +169,7 @@ export default function ProductPage() {
     if (skippedCategories[topping.category]) setSkippedCategories((prev) => ({ ...prev, [topping.category]: false }));
     setToppingQuantities((prev) => ({ ...prev, [topping.id]: (prev[topping.id] || 0) + 1 }));
   };
+
   const handleToppingDecrease = (topping: Topping) => {
     setToppingQuantities((prev) => {
       const currentQty = prev[topping.id] || 0;
@@ -193,6 +177,7 @@ export default function ProductPage() {
       return { ...prev, [topping.id]: currentQty - 1 };
     });
   };
+
   const handleSkipCategory = (category: ToppingCategory) => {
     const isCurrentlySkipped = skippedCategories[category];
     setSkippedCategories((prev) => ({ ...prev, [category]: !isCurrentlySkipped }));
@@ -204,13 +189,18 @@ export default function ProductPage() {
       });
     }
   };
+
   const handleAddToCart = () => {
     if (!product) return;
     const toppingsData = toppings.map(t => ({ id: t.id, name: t.name, price: t.price, category: t.category }));
     const limits: Record<string, number> = {};
     ALL_TOPPING_CATEGORIES.forEach(cat => { limits[cat] = getToppingLimit(currentSizeId, cat); });
     const skippedCategoriesList = Object.entries(skippedCategories).filter(([, isSkipped]) => isSkipped).map(([cat]) => cat);
-    const customization = createCustomization(currentSizeId, toppingQuantities, toppingsData, limits, wantsCutlery === true, observations, skippedCategoriesList);
+    
+    const customization = createCustomization(
+      currentSizeId, toppingQuantities, toppingsData, limits, wantsCutlery === true, observations, skippedCategoriesList
+    );
+
     addItem(product, quantity, customization);
     toast.success('Adicionado ao carrinho!', { duration: 2000 });
     router.push('/carrinho');
@@ -222,7 +212,6 @@ export default function ProductPage() {
   return (
     <div className="min-h-screen bg-background pb-32">
       
-      {/* Header Mobile: Botão Voltar flutuante (Só aparece no mobile) */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-20 pointer-events-none">
          <div className="p-4 flex justify-between">
             <button 
@@ -234,48 +223,48 @@ export default function ProductPage() {
          </div>
       </div>
 
-      {/* Header Desktop (Normal) */}
-      <header className="hidden md:block bg-background border-b border-neutral-200/50 dark:border-neutral-800/50 sticky top-0 z-10">
+      <header className="hidden md:block bg-background border-b border-neutral-200/50 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
-          <button onClick={() => router.back()} className="p-2 -ml-2 rounded-full hover:bg-neutral-100 dark:hover:bg-muted transition-colors">
+          <button onClick={() => router.back()} className="p-2 -ml-2 rounded-full hover:bg-neutral-100 transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="font-semibold text-lg truncate">Detalhes do produto</h1>
         </div>
       </header>
 
-      {/* MODAL DE IMAGEM EXPANDIDA (LIGHTBOX) */}
-      {isImageExpanded && (
-        <div className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <button 
-                onClick={() => setIsImageExpanded(false)} 
-                className="absolute top-4 right-4 p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors"
-            >
-                <X className="w-8 h-8" />
+      {showDesktopModal && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 animate-in fade-in duration-200 cursor-zoom-out"
+          onClick={() => setShowDesktopModal(false)}
+        >
+            <button className="absolute top-6 right-6 p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors z-10">
+                <X className="w-6 h-6" />
             </button>
-            <div className="relative w-full h-full max-w-4xl max-h-[80vh]">
-                <Image
-                    src={product.imageUrl}
-                    alt={product.name}
-                    fill
-                    className="object-contain"
-                />
+            <div className="relative w-full h-full max-w-5xl max-h-[85vh] p-2">
+                <Image src={product.imageUrl} alt={product.name} fill className="object-contain" priority />
             </div>
         </div>
       )}
 
-      {/* CONTEÚDO PRINCIPAL */}
       <div className="max-w-4xl mx-auto">
         
-        {/* Container Responsivo: Coluna no Mobile / Linha no Desktop */}
-        <div className="flex flex-col md:flex-row md:p-6 md:gap-8 bg-white dark:bg-neutral-900 md:border-b border-neutral-100">
+        {/* ✅ MUDANÇA AQUI: Adicionado md:shadow-md e md:rounded-b-[2rem] no container principal */}
+        <div className="flex flex-col md:flex-row md:p-6 md:gap-8 bg-white md:border border-neutral-100 md:shadow-md md:rounded-b-[2rem] md:mt-4">
           
-          {/* ÁREA DA IMAGEM */}
-          <div className="relative w-full shrink-0 group">
-             {/* Mobile: h-72 (288px) - Grande destaque
-                Desktop: w-80 h-80 - Quadrado fixo
-             */}
-             <div className="relative w-full h-72 md:w-80 md:h-80 bg-white md:rounded-3xl overflow-hidden md:border border-neutral-100">
+          <div className="relative w-full md:w-auto shrink-0 group/image-container">
+             <div
+               onClick={() => window.innerWidth >= 768 && setShowDesktopModal(true)}
+               className={`
+                  relative w-full bg-white overflow-hidden shadow-sm
+                  transition-all duration-300 ease-in-out
+                  
+                  ${isMobileExpanded ? 'aspect-square' : 'aspect-[4/3]'}
+                  rounded-none
+
+                  md:aspect-square md:w-[400px] md:h-[400px] 
+                  md:rounded-[2.5rem] md:cursor-zoom-in
+               `}
+             >
                 {imageError ? (
                 <div className="absolute inset-0 flex items-center justify-center">
                     <Cherry className="w-16 h-16 text-[#c69abf]" />
@@ -285,26 +274,28 @@ export default function ProductPage() {
                     src={product.imageUrl}
                     alt={product.name}
                     fill
-                    className="object-contain" // Sem padding para ocupar tudo
+                    className="object-cover md:object-contain md:group-hover/image-container:scale-105 transition-transform duration-500"
                     priority
                     onError={() => setImageError(true)}
                 />
                 )}
-                
-                {/* Botão de Expandir (Sobre a imagem) */}
-                <button 
-                    onClick={() => setIsImageExpanded(true)}
-                    className="absolute bottom-4 right-4 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-sm text-neutral-600 hover:text-[#9d0094] transition-colors"
+
+                 <div className="hidden md:flex absolute inset-0 bg-black/0 group-hover/image-container:bg-black/5 transition-colors items-center justify-center opacity-0 group-hover/image-container:opacity-100 pointer-events-none">
+                    <Maximize2 className="w-10 h-10 text-neutral-400 drop-shadow-sm" />
+                 </div>
+
+                <button
+                    onClick={(e) => { e.stopPropagation(); setIsMobileExpanded(!isMobileExpanded); }}
+                    className="md:hidden absolute bottom-4 left-1/2 -translate-x-1/2 p-3 bg-white/90 backdrop-blur-sm rounded-full shadow-lg text-neutral-700 hover:text-[#9d0094] transition-colors z-20"
                 >
-                    <Maximize2 className="w-5 h-5" />
+                    {isMobileExpanded ? <ChevronUp className="w-6 h-6 animate-in zoom-in" /> : <ChevronDown className="w-6 h-6 animate-in zoom-in" />}
                 </button>
              </div>
           </div>
 
-          {/* INFORMAÇÕES DO PRODUTO */}
           <div className="p-4 md:p-0 md:py-4 flex-1 space-y-3">
             <div className="flex justify-between items-start gap-4">
-                <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100 leading-tight">
+                <h2 className="text-2xl font-bold text-neutral-900 leading-tight">
                 {product.name}
                 </h2>
                 {product.hasPromo && (
@@ -325,13 +316,12 @@ export default function ProductPage() {
               )}
             </div>
 
-            <p className="text-neutral-600 dark:text-neutral-400 text-sm leading-relaxed">
+            <p className="text-neutral-600 text-sm leading-relaxed">
               {product.description}
             </p>
           </div>
         </div>
 
-        {/* SELEÇÃO DE ACOMPANHAMENTOS (Mantido igual) */}
         <div className="md:mt-6">
           {ALL_TOPPING_CATEGORIES.map((category) => {
             const toppingsList = getToppingsByCategory(category);
@@ -343,7 +333,8 @@ export default function ProductPage() {
             if (toppingsList.length === 0) return null;
 
             return (
-              <Card key={category} className="rounded-none md:rounded-xl border-x-0 md:border border-t-0 md:border-t mb-0 md:mb-4 shadow-none md:shadow-sm">
+              // ✅ MUDANÇA AQUI: md:shadow-sm para md:shadow-md
+              <Card key={category} className="rounded-none md:rounded-xl border-x-0 md:border border-t-0 md:border-t mb-0 md:mb-4 shadow-none md:shadow-md border-neutral-100">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
@@ -361,7 +352,7 @@ export default function ProductPage() {
                 </CardHeader>
                 <CardContent>
                   {!isExtras && (
-                    <button onClick={() => handleSkipCategory(category)} className={`w-full mb-3 p-3 rounded-xl border-2 flex items-center gap-3 transition-all ${isSkipped ? 'border-[#9d0094]' : 'border-neutral-200'}`}>
+                    <button onClick={() => handleSkipCategory(category)} className={`w-full mb-3 p-3 rounded-xl border-2 flex items-center gap-3 transition-all ${isSkipped ? 'border-[#9d0094]' : 'border-neutral-100'}`}>
                       <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center" style={isSkipped ? { borderColor: '#9d0094', backgroundColor: '#9d0094' } : { borderColor: '#d1d5db' }}>
                         {isSkipped && <X className="w-3 h-3 text-white" />}
                       </div>
@@ -387,17 +378,17 @@ export default function ProductPage() {
             );
           })}
 
-          {/* Talheres e Observações (Mantidos mas adaptados para o container) */}
-           <Card className="rounded-none md:rounded-xl border-x-0 md:border border-t-0 md:border-t mb-0 md:mb-4 shadow-none md:shadow-sm">
+          {/* ✅ MUDANÇA AQUI: md:shadow-sm para md:shadow-md */}
+          <Card className="rounded-none md:rounded-xl border-x-0 md:border border-t-0 md:border-t mb-0 md:mb-4 shadow-none md:shadow-md border-neutral-100">
             <CardHeader><CardTitle>Talheres <span className="text-red-500">*</span></CardTitle></CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <button onClick={() => setWantsCutlery(true)} className={`w-full p-4 rounded-xl border-2 flex items-center gap-3 ${wantsCutlery === true ? 'border-[#9d0094]' : 'border-neutral-200'}`}>
+                <button onClick={() => setWantsCutlery(true)} className={`w-full p-4 rounded-xl border-2 flex items-center gap-3 ${wantsCutlery === true ? 'border-[#9d0094]' : 'border-neutral-100'}`}>
                   <UtensilsCrossed className="w-5 h-5" style={{ color: wantsCutlery === true ? '#9d0094' : '#9ca3af' }} />
                   <span className="font-medium flex-1 text-left">Quero talheres</span>
                   {wantsCutlery === true && <div className="w-5 h-5 rounded-full border-2 bg-[#9d0094] border-[#9d0094] flex items-center justify-center"><Check className="w-3 h-3 text-white" /></div>}
                 </button>
-                <button onClick={() => setWantsCutlery(false)} className={`w-full p-4 rounded-xl border-2 flex items-center gap-3 ${wantsCutlery === false ? 'border-[#9d0094]' : 'border-neutral-200'}`}>
+                <button onClick={() => setWantsCutlery(false)} className={`w-full p-4 rounded-xl border-2 flex items-center gap-3 ${wantsCutlery === false ? 'border-[#9d0094]' : 'border-neutral-100'}`}>
                   <X className="w-5 h-5" style={{ color: wantsCutlery === false ? '#9d0094' : '#9ca3af' }} />
                   <span className="font-medium flex-1 text-left">Não quero talheres</span>
                   {wantsCutlery === false && <div className="w-5 h-5 rounded-full border-2 bg-[#9d0094] border-[#9d0094] flex items-center justify-center"><X className="w-3 h-3 text-white" /></div>}
@@ -406,7 +397,8 @@ export default function ProductPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-none md:rounded-xl border-x-0 md:border border-t-0 md:border-t shadow-none md:shadow-sm">
+          {/* ✅ MUDANÇA AQUI: md:shadow-sm para md:shadow-md */}
+          <Card className="rounded-none md:rounded-xl border-x-0 md:border border-t-0 md:border-t shadow-none md:shadow-md border-neutral-100">
             <CardHeader><CardTitle>Alguma observação?</CardTitle></CardHeader>
             <CardContent>
               <textarea
@@ -421,10 +413,9 @@ export default function ProductPage() {
         </div>
       </div>
 
-      {/* Footer fixo */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-900 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50 border-t border-neutral-100">
+      <div className="fixed bottom-0 left-0 right-0 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50 border-t border-neutral-100">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-center gap-3">
-          <div className="flex items-center gap-2 bg-neutral-100 dark:bg-muted rounded-xl p-0.5">
+          <div className="flex items-center gap-2 bg-neutral-100 rounded-xl p-0.5">
             <button onClick={() => setQuantity((q) => Math.max(1, q - 1))} disabled={quantity <= 1} className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${quantity <= 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-neutral-200'}`}>
               <Minus className="w-4 h-4" />
             </button>

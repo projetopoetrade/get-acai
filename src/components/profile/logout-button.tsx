@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { logout } from '@/app/actions/auth'; // Importe a Server Action que criamos
+import { logout } from '@/lib/auth'; // Importe a Server Action que criamos
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 import { toast } from 'sonner';

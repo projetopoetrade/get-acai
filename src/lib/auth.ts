@@ -196,29 +196,37 @@ export async function isAuthenticated(): Promise<boolean> {
  */
 async function getAuthToken(): Promise<string | null> {
   const cookieStore = await cookies();
-  const tokenCookie = cookieStore.get('access_token');
-  return tokenCookie?.value || null;
+  // Tenta ler com o nome usado neste arquivo OU o nome usado no seu actions/auth.ts
+  const token = cookieStore.get('access_token')?.value || cookieStore.get('auth_token')?.value;
+  return token || null;
 }
 
 /**
  * Atualiza dados do perfil do usuário
+ * CORREÇÃO: Aceita token manual como segundo parâmetro
  */
-export async function updateProfile(data: {
-  name?: string;
-  phone?: string;
-}): Promise<AuthResult> {
+export async function updateProfile(
+  data: { name?: string; phone?: string }, 
+  manualToken?: string | null // ✅ NOVO PARÂMETRO
+): Promise<AuthResult> {
   try {
-    const token = await getAuthToken();
+    // 1. Tenta usar o token manual (vindo do client/localStorage)
+    // 2. Se não tiver, tenta buscar nos cookies (server-side)
+    let token = manualToken;
+    
+    if (!token) {
+        token = await getAuthToken();
+    }
 
     if (!token) {
       return {
         success: false,
-        error: 'Você precisa estar logado',
+        error: 'Você precisa estar logado (Token não encontrado)',
       };
     }
 
-    const res = await fetch(`${API_URL}/users/profile`, {
-      method: 'PATCH',
+    const res = await fetch(`${API_URL}/users/profile`, { // Confirme se a rota é /users/profile ou /auth/me
+      method: 'PATCH', // ou PUT, dependendo do seu backend
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
@@ -236,6 +244,7 @@ export async function updateProfile(data: {
 
     const updatedUser: User = await res.json();
 
+    // Atualiza o cookie de usuário com os dados novos
     const cookieStore = await cookies();
     cookieStore.set('user', JSON.stringify(updatedUser), {
       httpOnly: false,

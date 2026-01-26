@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { 
   ArrowLeft, 
   Clock, 
@@ -277,10 +277,10 @@ function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
                   {address.neighborhood} - {address.city}/{address.state}
                 </p>
                 {address.complement && (
-                   <p className="text-xs text-neutral-500 mt-1">Comp: {address.complement}</p>
+                    <p className="text-xs text-neutral-500 mt-1">Comp: {address.complement}</p>
                 )}
                 {address.reference && (
-                   <p className="text-xs text-neutral-500">Ref: {address.reference}</p>
+                    <p className="text-xs text-neutral-500">Ref: {address.reference}</p>
                 )}
               </div>
             </div>
@@ -446,21 +446,42 @@ function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
 
 export default function PedidosPage() {
   const router = useRouter();
+  const pathname = usePathname(); // ✅ Pega URL atual para o callback
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
+  // 1. Verificação de Auth no client-side
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token');
+    const user = localStorage.getItem('user');
+
+    if (!token || !user) {
+      // ✅ Se não tiver logado, manda pro login com a volta garantida
+      router.replace(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
+      return;
+    }
+  }, [router, pathname]);
+
   const loadOrders = useCallback(async () => {
+    const token = localStorage.getItem('auth_token');
+    if (!token) return; // Não tenta carregar se não tiver token
+
     try {
       const data = await ordersService.getMyOrders();
       setOrders(data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error('Não foi possível carregar seus pedidos.');
+      if (err?.response?.status === 401) {
+         // Se der 401 durante a busca, também redireciona
+         router.replace(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
+      } else {
+         toast.error('Não foi possível carregar seus pedidos.');
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [router, pathname]);
 
   useEffect(() => {
     loadOrders();

@@ -10,12 +10,12 @@ import { productsService } from '@/services/products';
 import { Product } from '@/types/product';
 import { useCategories } from '@/hooks/useCategories';
 
-// Normalizar categoria para comparação (remove acentos e converte para minúsculas)
+// Normalizar categoria para comparação
 const normalizeCategory = (category: string): string => {
   return category
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+    .replace(/[\u0300-\u036f]/g, '')
     .trim();
 };
 
@@ -26,20 +26,16 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
-  // Define categoria ativa inicial quando as categorias carregarem
   useEffect(() => {
     if (categories.length > 0 && !activeCategory) {
       setActiveCategory(categories[0].id);
     }
   }, [categories, activeCategory]);
 
-
-  // ✅ Carrega produtos reais do backend (apenas disponíveis)
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
-        // Filtra apenas produtos disponíveis na página principal
         const allProducts = await productsService.getAll(true);
         setProducts(allProducts as Product[]);
       } catch (error) {
@@ -48,11 +44,9 @@ export default function HomePage() {
         setLoading(false);
       }
     };
-
     loadData();
   }, []);
 
-  // Scroll suave entre categorias
   const handleCategoryClick = (categoryId: string) => {
     const section = sectionRefs.current[categoryId];
     if (section) {
@@ -67,7 +61,6 @@ export default function HomePage() {
     }
   };
 
-  // Detectar categoria ativa no scroll
   useEffect(() => {
     if (categories.length === 0) return;
 
@@ -95,7 +88,6 @@ export default function HomePage() {
     return () => observer.disconnect();
   }, [categories]);
 
-  // ✅ Filtra produtos por categoria (dados reais)
   const getProductsByCategory = (categoryId: string) => {
     const normalizedTarget = normalizeCategory(categoryId);
     return products.filter((p) => {
@@ -107,27 +99,23 @@ export default function HomePage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#9d0094]"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background transition-colors">
-      {/* Header fixo */}
+    // ✅ MUDANÇA: bg-neutral-50 para suavizar o fundo
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 transition-colors">
       <Header />
-
-      {/* Carrossel de Destaques */}
       <HighlightsCarousel />
-
-      {/* Category Tabs */}
+      
       <CategoryTabs
         activeCategory={activeCategory}
         onCategoryChange={handleCategoryClick}
         categories={categories.map(cat => ({ id: cat.id, label: cat.label }))}
       />
 
-      {/* Seções de produtos */}
       <div className="max-w-5xl mx-auto px-4 pb-24">
         {categories.map((category) => {
           const categoryProducts = getProductsByCategory(category.id);
@@ -139,7 +127,6 @@ export default function HomePage() {
               ref={(el) => { sectionRefs.current[category.id] = el; }}
               className="py-6 scroll-mt-16"
             >
-              {/* Título */}
               <div className="mb-4">
                 <h2 className="text-xl font-bold text-neutral-800 dark:text-neutral-100 flex items-center gap-2">
                   {category.label}
@@ -156,7 +143,6 @@ export default function HomePage() {
                 )}
               </div>
 
-              {/* Grid de produtos */}
               {categoryProducts.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
                   {categoryProducts.map((product) => (
