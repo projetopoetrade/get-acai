@@ -70,18 +70,38 @@ export default function CheckoutPage() {
 
   const handleSelectAddress = useCallback(async (address: Address) => {
     setSelectedAddress(address);
+    
+    // Defina aqui o valor da sua taxa padrão (fallback)
+    const TAXA_PADRAO = 5.00; 
+
     try {
+      // Log para debug: verifique no console do navegador o que está sendo enviado
+      console.log('[Checkout] Calculando frete para bairro:', address.neighborhood);
+      
       const info = await calculateFee(address.neighborhood);
-      if (info) {
+      
+      // Log para debug: verifique o que a API retornou
+      console.log('[Checkout] Retorno do cálculo:', info);
+
+      // Verifica se existe info e se fee é um número válido
+      if (info && typeof info.fee === 'number') {
         cart.setDeliveryFee(info.fee);
         toast.success(`Taxa para ${address.neighborhood}: R$ ${info.fee.toFixed(2)}`);
+      } else {
+        // Se a API não retornar nada (bairro não mapeado), usa a taxa padrão
+        console.warn('[Checkout] Bairro sem taxa específica, aplicando padrão.');
+        cart.setDeliveryFee(TAXA_PADRAO);
       }
     } catch (err) {
-      cart.setDeliveryFee(0);
-      toast.error("Erro ao calcular frete para este bairro.");
+      console.error("[Checkout] Erro ao calcular frete:", err);
+      
+      // ✅ CORREÇÃO: Em caso de erro, aplica a taxa padrão em vez de 0
+      cart.setDeliveryFee(TAXA_PADRAO);
+      
+      // Opcional: Avisar ao usuário que foi aplicada a taxa fixa
+      // toast.error("Erro ao calcular frete exato. Taxa padrão aplicada.");
     }
   }, [calculateFee, cart]);
-
 
   // Carregar endereços salvos
   useEffect(() => {
