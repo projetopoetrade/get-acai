@@ -32,7 +32,8 @@ export function sanitizeText(input: string): string {
   // Remove caracteres de controle (exceto quebra de linha e tab)
   sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
   
-  return sanitized.trim();
+  // ✅ REMOVIDO O .trim() PARA PERMITIR DIGITAÇÃO DE ESPAÇOS
+  return sanitized; 
 }
 
 /**
@@ -95,7 +96,6 @@ export function sanitizeName(input: string): string {
   return input
     .replace(/[^a-zA-ZÀ-ÿ\s'-]/g, '')
     .replace(/\s+/g, ' ')
-    .trim()
     .substring(0, 100);
 }
 
@@ -107,7 +107,6 @@ export function sanitizeAddress(input: string): string {
   
   return input
     .replace(/[<>{}[\]\\]/g, '')
-    .trim()
     .substring(0, 200);
 }
 
