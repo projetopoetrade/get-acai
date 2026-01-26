@@ -71,7 +71,7 @@ import {
         <div className="bg-neutral-50 dark:bg-neutral-800/50 p-3 rounded-lg mb-3 space-y-2">
           {/* Itens */}
           <div className="space-y-1">
-            {order.items.map((item, idx) => (
+            {order.items?.map((item, idx) => (
                <div key={idx} className="text-sm">
                   <span className="font-bold text-neutral-800 dark:text-neutral-200">{item.quantity}x {item.product?.name || item.productName}</span>
                   {item.toppings && item.toppings.length > 0 && (
