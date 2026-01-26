@@ -10,21 +10,19 @@ export function LogoutButton() {
 
   const handleLogout = async () => {
     try {
-      // 1. Executa a limpeza no servidor
-      await logout();
+      // 1. Pede para o servidor apagar o cookie
+      await logout(); 
       
-      // 2. Limpa qualquer estado local (se usar Context ou Zustand/Redux)
-      // ex: setUser(null); 
-
-      // 3. Força o Next.js a esquecer os dados da página atual
-      router.refresh(); 
+      // 2. Limpa o cache do Next.js (Crucial para atualizar o estado de autenticação)
+      router.refresh();
       
-      // 4. Redireciona para login
+      // 3. Redireciona manualmente
       router.replace('/login');
       
     } catch (error) {
       console.error("Erro no logout", error);
-      toast.error("Erro ao sair");
+      // Mesmo com erro, forçamos o redirecionamento para não prender o usuário
+      router.replace('/login');
     }
   };
 
