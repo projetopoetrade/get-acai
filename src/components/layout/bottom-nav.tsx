@@ -4,6 +4,7 @@
 import { Home, ClipboardList, User, ShoppingCart } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCart } from '@/hooks/useCart';
+import { useUI } from '@/contexts/ui-provider'; // ✅ 1. Importe o hook
 
 const navItems = [
   { id: 'home', label: 'Início', icon: Home, href: '/' },
@@ -16,7 +17,13 @@ export function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const cart = useCart();
+  const { showBottomNav } = useUI(); // ✅ 2. Pegue o estado do contexto
   const itemCount = cart.itemCount;
+
+  // ✅ 3. Se o contexto mandar esconder (ex: modal aberto), não renderiza nada
+  if (!showBottomNav) {
+    return null;
+  }
 
   // Não mostrar na página de produto (tem seu próprio footer)
   if (pathname?.startsWith('/produto/')) {

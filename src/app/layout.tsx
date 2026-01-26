@@ -5,6 +5,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/sonner';
 import { ThemeProvider } from '@/components/theme-provider';
 import { BottomNav } from '@/components/layout/bottom-nav';
+import { UIProvider } from '@/contexts/ui-provider';
 
 
 const inter = Inter({ subsets: ['latin'] });
@@ -28,11 +29,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-
+          <UIProvider>
             {children}
             <BottomNav />
             <Toaster position="top-center" />
-
+          </UIProvider>
+          
         </ThemeProvider>
       </body>
     </html>
