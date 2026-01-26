@@ -25,6 +25,7 @@ export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+  const isManualScroll = useRef(false);
 
   useEffect(() => {
     if (categories.length > 0 && !activeCategory) {
@@ -61,32 +62,52 @@ export default function HomePage() {
     }
   };
 
+  // 👇 SUBSTITUA O SEU useEffect DO OBSERVER POR ESTE:
   useEffect(() => {
-    if (categories.length === 0) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setActiveCategory(entry.target.id);
+    const handleScroll = () => {
+      if (isManualScroll.current) return;
+  
+      // 1. TRAVA DE FIM DE PÁGINA (Corrige o bug de Bebidas/Último item)
+      // Verifica se a rolagem + altura da janela é maior ou igual ao tamanho total da página
+      // Usamos um "buffer" de 50px ou 100px para garantir que funcione em celulares
+      const isBottom = Math.ceil(window.innerHeight + window.scrollY) >= document.documentElement.scrollHeight - 50;
+  
+      if (isBottom && categories.length > 0) {
+        const lastCategory = categories[categories.length - 1];
+        if (activeCategory !== lastCategory.id) {
+          setActiveCategory(lastCategory.id);
+        }
+        return; // Para a execução aqui, garantindo que o último fique ativo
+      }
+  
+      // 2. LÓGICA PADRÃO (Quem está no topo?)
+      const headerOffset = 120; 
+      let currentId = '';
+  
+      for (const cat of categories) {
+        const section = sectionRefs.current[cat.id];
+        if (section) {
+          const rect = section.getBoundingClientRect();
+          
+          // A lógica que você pediu: "Identificar quando acabou a sessão"
+          // Se rect.bottom (o final da seção) for maior que o offset, 
+          // significa que essa seção AINDA está na tela (não acabou).
+          // Como o loop roda em ordem, a primeira que satisfaz isso é a ativa.
+          if (rect.bottom > headerOffset) {
+            currentId = cat.id;
+            break; // Achou a dona do pedaço, para o loop
           }
-        });
-      },
-      {
-        rootMargin: '-80px 0px -70% 0px',
-        threshold: 0,
+        }
       }
-    );
-
-    categories.forEach((cat) => {
-      const section = sectionRefs.current[cat.id];
-      if (section) {
-        observer.observe(section);
+  
+      if (currentId && currentId !== activeCategory) {
+        setActiveCategory(currentId);
       }
-    });
-
-    return () => observer.disconnect();
-  }, [categories]);
+    };
+  
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [categories, activeCategory]);
 
   const getProductsByCategory = (categoryId: string) => {
     const normalizedTarget = normalizeCategory(categoryId);
@@ -109,7 +130,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 transition-colors">
       <Header />
       <HighlightsCarousel />
-      
+
       <CategoryTabs
         activeCategory={activeCategory}
         onCategoryChange={handleCategoryClick}
