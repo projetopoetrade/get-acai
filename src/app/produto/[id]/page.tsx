@@ -545,7 +545,7 @@ export default function ProductPage() {
       {/* Conteúdo */}
       <div className="max-w-4xl mx-auto ">
         {/* Imagem do Produto */}
-        <div className="relative w-full h-64 sm:h-80 bg-gradient-to-br from-neutral-100 to-neutral-50 dark:from-neutral-800 dark:to-neutral-900">
+        <div className="relative w-full h-80 sm:h-96 bg-gradient-to-br from-neutral-100 to-neutral-50 dark:from-neutral-800 dark:to-neutral-900">
           {imageError ? (
             <div className="absolute inset-0 flex items-center justify-center">
               <Cherry className="w-24 h-24" style={{ color: '#c69abf' }} />
@@ -555,14 +555,15 @@ export default function ProductPage() {
               src={product.imageUrl}
               alt={product.name}
               fill
-              className="object-cover"
+              // 2. Mudamos de "object-cover" para "object-contain" e adicionamos padding "p-4"
+              className="object-contain p-4 hover:scale-105 transition-transform duration-300"
               priority
               onError={() => setImageError(true)}
             />
           )}
           {product.hasPromo && product.promoText && (
             <Badge
-              className="absolute top-4 right-4 z-10 font-semibold text-sm px-3 py-1"
+              className="absolute top-4 right-4 z-10 font-semibold text-sm px-3 py-1 shadow-sm"
               style={{ backgroundColor: '#fcc90c', color: '#430238' }}
             >
               {product.promoText}
