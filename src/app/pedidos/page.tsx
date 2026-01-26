@@ -3,12 +3,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { 
-  ArrowLeft, 
-  Clock, 
-  CheckCircle2, 
-  Truck, 
-  Package, 
+import {
+  ArrowLeft,
+  Clock,
+  CheckCircle2,
+  Truck,
+  Package,
   XCircle,
   ChefHat,
   MessageCircle,
@@ -118,9 +118,9 @@ function formatDate(dateString: string): string {
 }
 
 function formatTime(dateString: string): string {
-  return new Date(dateString).toLocaleTimeString('pt-BR', { 
-    hour: '2-digit', 
-    minute: '2-digit' 
+  return new Date(dateString).toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit'
   });
 }
 
@@ -142,18 +142,18 @@ function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
   const router = useRouter(); // ✅ Router adicionado para navegação
   const [expanded, setExpanded] = useState(false);
   const [reviewingProductId, setReviewingProductId] = useState<string | null>(null);
-  
+
   const statusKey = order.status.toLowerCase();
   const statusConfig = STATUS_CONFIG[statusKey] || STATUS_CONFIG['pending'];
   const StatusIcon = statusConfig.icon;
-  
+
   const isActive = [
-    'pending', 
-    'awaiting_payment', 
-    'payment_received', 
-    'confirmed', 
-    'preparing', 
-    'ready', 
+    'pending',
+    'awaiting_payment',
+    'payment_received',
+    'confirmed',
+    'preparing',
+    'ready',
     'delivering'
   ].includes(statusKey);
 
@@ -162,9 +162,8 @@ function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
   const deliveryMethod = order.deliveryMethod || order.deliveryType;
 
   return (
-    <div className={`bg-white dark:bg-neutral-900 rounded-2xl border-2 overflow-hidden transition-all ${
-      isActive ? 'border-[#9d0094]/30' : 'border-neutral-200 dark:border-neutral-800'
-    }`}>
+    <div className={`bg-white dark:bg-neutral-900 rounded-2xl border-2 overflow-hidden transition-all ${isActive ? 'border-[#9d0094]/30' : 'border-neutral-200 dark:border-neutral-800'
+      }`}>
       {/* --- HEADER DO CARD --- */}
       <button
         onClick={() => setExpanded(!expanded)}
@@ -181,14 +180,23 @@ function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
                 {formatDate(order.createdAt)} às {formatTime(order.createdAt)}
               </span>
             </div>
-            
-            <div 
+
+            <div
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium"
               style={{ backgroundColor: statusConfig.bgColor, color: statusConfig.color }}
             >
               <StatusIcon className="w-4 h-4" />
               {statusConfig.label}
             </div>
+
+            {/* 👇 ADICIONAR ESTE BLOCO LOGO ABAIXO DO STATUS */}
+            {order.estimatedDeliveryTime && isActive && (
+              <div className="mt-2 flex items-center gap-1.5 text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                <Clock className="w-3.5 h-3.5" />
+                <span>Chega em: <span className="text-neutral-900 dark:text-neutral-200">{order.estimatedDeliveryTime}</span></span>
+              </div>
+            )}
+            {/* 👆 FIM DO BLOCO ADICIONADO */}
 
             <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-2 line-clamp-1">
               {order.items.map(item => {
@@ -214,14 +222,14 @@ function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
       {/* --- CONTEÚDO EXPANDIDO --- */}
       {expanded && (
         <div className="px-4 pb-4 border-t border-neutral-100 dark:border-neutral-800 pt-4 space-y-4">
-          
+
           {/* 1. Status Detalhado */}
           <div className="p-3 rounded-xl flex items-start gap-3" style={{ backgroundColor: statusConfig.bgColor }}>
             <StatusIcon className="w-5 h-5 mt-0.5" style={{ color: statusConfig.color }} />
             <div>
-               <p className="text-sm font-medium" style={{ color: statusConfig.color }}>
-                 {statusConfig.description}
-               </p>
+              <p className="text-sm font-medium" style={{ color: statusConfig.color }}>
+                {statusConfig.description}
+              </p>
             </div>
           </div>
 
@@ -235,7 +243,7 @@ function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
               {order.items.map((item, idx) => {
                 const productName = item.product?.name || item.productName || 'Produto';
                 const toppings = item.toppings || item.customization?.toppings || [];
-                
+
                 const getToppingName = (topping: any): string => {
                   if (topping && typeof topping === 'object') {
                     if ('toppingName' in topping && topping.toppingName) return String(topping.toppingName);
@@ -243,12 +251,12 @@ function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
                   }
                   return 'Topping';
                 };
-                
+
                 return (
                   <div key={idx} className="flex justify-between items-start p-2 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
                     <div className="flex-1">
                       <p className="font-medium text-sm">
-                        {item.quantity}x {productName} 
+                        {item.quantity}x {productName}
                       </p>
                       {toppings.length > 0 && (
                         <p className="text-xs text-neutral-500 mt-0.5">
@@ -277,10 +285,10 @@ function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
                   {address.neighborhood} - {address.city}/{address.state}
                 </p>
                 {address.complement && (
-                    <p className="text-xs text-neutral-500 mt-1">Comp: {address.complement}</p>
+                  <p className="text-xs text-neutral-500 mt-1">Comp: {address.complement}</p>
                 )}
                 {address.reference && (
-                    <p className="text-xs text-neutral-500">Ref: {address.reference}</p>
+                  <p className="text-xs text-neutral-500">Ref: {address.reference}</p>
                 )}
               </div>
             </div>
@@ -288,35 +296,35 @@ function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
 
           {/* 4. Resumo Financeiro */}
           <div className="border-t border-neutral-100 dark:border-neutral-800 pt-3 space-y-1">
-             <div className="flex justify-between text-sm">
-                <span className="text-neutral-600">Forma de Pagamento</span>
-                <span className="font-medium capitalize">
-                  {order.paymentMethod === 'credit' ? 'Cartão de Crédito' : 
-                   order.paymentMethod === 'debit' ? 'Cartão de Débito' : 
-                   order.paymentMethod === 'cash' ? 'Dinheiro' : order.paymentMethod}
+            <div className="flex justify-between text-sm">
+              <span className="text-neutral-600">Forma de Pagamento</span>
+              <span className="font-medium capitalize">
+                {order.paymentMethod === 'credit' ? 'Cartão de Crédito' :
+                  order.paymentMethod === 'debit' ? 'Cartão de Débito' :
+                    order.paymentMethod === 'cash' ? 'Dinheiro' : order.paymentMethod}
+              </span>
+            </div>
+
+            {deliveryMethod === 'delivery' && (
+              <div className="flex justify-between text-sm">
+                <span className="text-neutral-600">Taxa de entrega</span>
+                <span>
+                  {Number(order.deliveryFee) === 0 ? 'Grátis' : `R$ ${Number(order.deliveryFee).toFixed(2)}`}
                 </span>
-             </div>
-             
-             {deliveryMethod === 'delivery' && (
-                <div className="flex justify-between text-sm">
-                   <span className="text-neutral-600">Taxa de entrega</span>
-                   <span>
-                     {Number(order.deliveryFee) === 0 ? 'Grátis' : `R$ ${Number(order.deliveryFee).toFixed(2)}`}
-                   </span>
-                </div>
-             )}
+              </div>
+            )}
 
-             {Number(order.discount) > 0 && (
-                <div className="flex justify-between text-sm text-green-600">
-                   <span>Desconto</span>
-                   <span>- R$ {Number(order.discount).toFixed(2)}</span>
-                </div>
-             )}
+            {Number(order.discount) > 0 && (
+              <div className="flex justify-between text-sm text-green-600">
+                <span>Desconto</span>
+                <span>- R$ {Number(order.discount).toFixed(2)}</span>
+              </div>
+            )}
 
-             <div className="flex justify-between font-bold pt-2 border-t border-neutral-100 dark:border-neutral-800 mt-2">
-                <span>Total</span>
-                <span style={{ color: '#9d0094' }}>R$ {Number(order.total).toFixed(2)}</span>
-             </div>
+            <div className="flex justify-between font-bold pt-2 border-t border-neutral-100 dark:border-neutral-800 mt-2">
+              <span>Total</span>
+              <span style={{ color: '#9d0094' }}>R$ {Number(order.total).toFixed(2)}</span>
+            </div>
           </div>
 
           {/* 5. Avaliação (apenas entregues) */}
@@ -387,52 +395,52 @@ function OrderCard({ order, onCancel, isCancelling }: OrderCardProps) {
 
           {/* 6. Ações (Botões) */}
           <div className="flex flex-col gap-2 pt-2">
-             
-             {/* ✅ BOTÃO VER DETALHES / PAGAR */}
-             <Button
-                onClick={() => router.push(`/pedidos/${order.id}`)}
-                className="w-full font-bold h-12 rounded-xl flex items-center justify-center gap-2 transition-transform active:scale-95"
-                variant={statusKey === 'awaiting_payment' ? 'default' : 'secondary'}
-                style={statusKey === 'awaiting_payment' 
-                  ? { backgroundColor: '#9d0094', color: 'white' } 
-                  : {}
-                }
-             >
-                {statusKey === 'awaiting_payment' ? (
-                  <>
-                    <QrCode className="w-5 h-5" />
-                    Pagar / Ver QR Code
-                  </>
-                ) : (
-                  <>
-                    <Eye className="w-5 h-5" />
-                    Ver detalhes do pedido
-                  </>
-                )}
-             </Button>
 
-             <a
-               href={getWhatsAppLink(order.orderNumber || order.id.substring(0, 8))}
-               target="_blank"
-               rel="noopener noreferrer"
-               className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl font-semibold text-white transition-all hover:opacity-90 active:scale-95"
-               style={{ backgroundColor: '#25D366' }}
-             >
-               <MessageCircle className="w-5 h-5" />
-               Falar com a loja
-             </a>
+            {/* ✅ BOTÃO VER DETALHES / PAGAR */}
+            <Button
+              onClick={() => router.push(`/pedidos/${order.id}`)}
+              className="w-full font-bold h-12 rounded-xl flex items-center justify-center gap-2 transition-transform active:scale-95"
+              variant={statusKey === 'awaiting_payment' ? 'default' : 'secondary'}
+              style={statusKey === 'awaiting_payment'
+                ? { backgroundColor: '#9d0094', color: 'white' }
+                : {}
+              }
+            >
+              {statusKey === 'awaiting_payment' ? (
+                <>
+                  <QrCode className="w-5 h-5" />
+                  Pagar / Ver QR Code
+                </>
+              ) : (
+                <>
+                  <Eye className="w-5 h-5" />
+                  Ver detalhes do pedido
+                </>
+              )}
+            </Button>
 
-             {(statusKey === 'pending' || statusKey === 'awaiting_payment') && (
-               <Button 
-                 variant="outline"
-                 onClick={() => onCancel(order.id)}
-                 disabled={isCancelling}
-                 className="w-full border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/30 dark:hover:bg-red-900/20 active:scale-95"
-               >
-                 {isCancelling ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Ban className="w-4 h-4 mr-2" />}
-                 Cancelar Pedido
-               </Button>
-             )}
+            <a
+              href={getWhatsAppLink(order.orderNumber || order.id.substring(0, 8))}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl font-semibold text-white transition-all hover:opacity-90 active:scale-95"
+              style={{ backgroundColor: '#25D366' }}
+            >
+              <MessageCircle className="w-5 h-5" />
+              Falar com a loja
+            </a>
+
+            {(statusKey === 'pending' || statusKey === 'awaiting_payment') && (
+              <Button
+                variant="outline"
+                onClick={() => onCancel(order.id)}
+                disabled={isCancelling}
+                className="w-full border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/30 dark:hover:bg-red-900/20 active:scale-95"
+              >
+                {isCancelling ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Ban className="w-4 h-4 mr-2" />}
+                Cancelar Pedido
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -473,10 +481,10 @@ export default function PedidosPage() {
     } catch (err: any) {
       console.error(err);
       if (err?.response?.status === 401) {
-         // Se der 401 durante a busca, também redireciona
-         router.replace(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
+        // Se der 401 durante a busca, também redireciona
+        router.replace(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
       } else {
-         toast.error('Não foi possível carregar seus pedidos.');
+        toast.error('Não foi possível carregar seus pedidos.');
       }
     } finally {
       setLoading(false);
@@ -490,25 +498,25 @@ export default function PedidosPage() {
   }, [loadOrders]);
 
   const handleCancelOrder = async (id: string) => {
-      if (!confirm('Tem certeza que deseja cancelar este pedido?')) return;
+    if (!confirm('Tem certeza que deseja cancelar este pedido?')) return;
 
-      setCancellingId(id);
-      try {
-        await ordersService.cancelOrder(id);
-        toast.success('Pedido cancelado com sucesso.');
-        loadOrders();
-      } catch (error: any) {
-        toast.error(error.response?.data?.message || 'Erro ao cancelar');
-      } finally {
-        setCancellingId(null);
-      }
+    setCancellingId(id);
+    try {
+      await ordersService.cancelOrder(id);
+      toast.success('Pedido cancelado com sucesso.');
+      loadOrders();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Erro ao cancelar');
+    } finally {
+      setCancellingId(null);
+    }
   };
 
   const activeOrders = orders.filter(o => {
     const status = o.status?.toLowerCase();
     return ['pending', 'awaiting_payment', 'payment_received', 'confirmed', 'preparing', 'ready', 'delivering'].includes(status);
   });
-  
+
   const pastOrders = orders.filter(o => {
     const status = o.status?.toLowerCase();
     return ['delivered', 'cancelled'].includes(status);
@@ -530,7 +538,7 @@ export default function PedidosPage() {
           </div>
         ) : orders.length === 0 ? (
           <div className="text-center py-16">
-            <div 
+            <div
               className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
               style={{ backgroundColor: 'rgba(157, 0, 148, 0.1)' }}
             >
@@ -559,9 +567,9 @@ export default function PedidosPage() {
                 </h2>
                 <div className="space-y-3">
                   {activeOrders.map((order) => (
-                    <OrderCard 
-                      key={order.id} 
-                      order={order} 
+                    <OrderCard
+                      key={order.id}
+                      order={order}
                       onCancel={handleCancelOrder}
                       isCancelling={cancellingId === order.id}
                     />
@@ -573,12 +581,12 @@ export default function PedidosPage() {
             {pastOrders.length > 0 && (
               <section>
                 <h2 className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                   <CheckCircle2 className="w-4 h-4" /> Histórico
+                  <CheckCircle2 className="w-4 h-4" /> Histórico
                 </h2>
                 <div className="space-y-3">
                   {pastOrders.map((order) => (
-                    <OrderCard 
-                      key={order.id} 
+                    <OrderCard
+                      key={order.id}
                       order={order}
                       onCancel={handleCancelOrder}
                       isCancelling={cancellingId === order.id}

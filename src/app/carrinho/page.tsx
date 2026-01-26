@@ -5,7 +5,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { 
-  ArrowLeft, 
   Minus, 
   Plus, 
   Trash2, 
@@ -17,7 +16,6 @@ import {
 } from 'lucide-react';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/hooks/useCart';
 import { toast } from 'sonner';
 import { CartItem } from '@/types/cart';
@@ -368,12 +366,13 @@ export default function CarrinhoPage() {
                   </div>
                 )}
 
+                {/* --- MUDANÇA: Taxa de entrega fixa --- */}
                 <div className="flex justify-between text-sm">
                   <span className="text-neutral-600 dark:text-neutral-400">
                     Taxa de entrega
                   </span>
-                  <span className={`font-medium ${cart.deliveryFee === 0 ? 'text-green-600' : ''}`}>
-                    {cart.deliveryFee === 0 ? 'Grátis' : `R$ ${cart.deliveryFee.toFixed(2)}`}
+                  <span className="text-neutral-400 text-xs italic">
+                    Calculada no checkout
                   </span>
                 </div>
 
@@ -383,9 +382,13 @@ export default function CarrinhoPage() {
                       Total
                     </span>
                     <span className="text-xl font-bold" style={{ color: '#9d0094' }}>
-                      R$ {cart.total.toFixed(2)}
+                      {/* --- MUDANÇA: Total sem frete --- */}
+                      R$ {Math.max(0, cart.subtotal - cart.discount).toFixed(2)}
                     </span>
                   </div>
+                  <p className="text-xs text-right text-neutral-400 mt-1">
+                    (Sem incluir taxa de entrega)
+                  </p>
                 </div>
               </div>
             </section>

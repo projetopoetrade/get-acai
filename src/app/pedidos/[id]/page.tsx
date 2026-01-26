@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { 
-  ArrowLeft, MapPin, ShoppingBag, CheckCircle2, Clock, 
+import {
+  ArrowLeft, MapPin, ShoppingBag, CheckCircle2, Clock,
   XCircle, ChefHat, Truck, Package, Phone
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ordersService } from '@/services/orders';
 import { PixPayment } from '@/components/checkout/pix-payment';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils'; 
+import { cn } from '@/lib/utils';
 
 // =========================================================
 // COMPONENTE VISUAL: TIMELINE DE PROGRESSO (Responsivo)
@@ -27,9 +27,9 @@ function OrderTimeline({ status }: { status: string }) {
     switch (status) {
       case 'awaiting_payment': return -1;
       case 'pending': return 0;
-      case 'payment_received': 
+      case 'payment_received':
       case 'confirmed': return 0;
-      case 'preparing': 
+      case 'preparing':
       case 'ready': return 1;
       case 'delivering': return 2;
       case 'delivered': return 3;
@@ -38,7 +38,7 @@ function OrderTimeline({ status }: { status: string }) {
   };
 
   const currentStep = getCurrentStep();
-  
+
   if (status === 'cancelled') return (
     <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 md:p-4 rounded-xl md:rounded-2xl flex items-center gap-3 font-semibold justify-center text-sm md:text-base">
       <XCircle className="w-5 h-5 md:w-6 md:h-6" /> Pedido Cancelado
@@ -50,24 +50,24 @@ function OrderTimeline({ status }: { status: string }) {
       <div className="relative flex justify-between items-center px-2">
         {/* Linha de fundo */}
         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 md:h-1 bg-neutral-200 dark:bg-neutral-800 -z-10" />
-        
+
         {/* Linha de progresso */}
-        <div 
+        <div
           className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 md:h-1 bg-[#9d0094] transition-all duration-1000 ease-out -z-10"
           style={{ width: `${Math.max(0, (currentStep / (STEPS.length - 1)) * 100)}%` }}
         />
 
         {STEPS.map((step, idx) => {
           const isActive = idx <= currentStep;
-          
+
           return (
             <div key={step.id} className="flex flex-col items-center gap-1.5 md:gap-2 bg-neutral-50 dark:bg-neutral-950 px-1">
-              <div 
+              <div
                 className={cn(
                   // Mobile: w-8 h-8 | Desktop: w-10 h-10
                   "w-8 h-8 md:w-12 md:h-12 rounded-full flex items-center justify-center border-2 transition-all duration-500",
-                  isActive 
-                    ? "bg-[#9d0094] border-[#9d0094] text-white shadow-lg shadow-[#9d0094]/30 scale-110" 
+                  isActive
+                    ? "bg-[#9d0094] border-[#9d0094] text-white shadow-lg shadow-[#9d0094]/30 scale-110"
                     : "bg-white dark:bg-neutral-800 border-neutral-300 dark:border-neutral-700 text-neutral-400"
                 )}
               >
@@ -137,12 +137,12 @@ export default function OrderDetailsPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-black pb-24">
-      
+
       {/* --- HEADER --- */}
       <header className="bg-white dark:bg-neutral-900 shadow-sm sticky top-0 z-20">
         <div className="max-w-5xl mx-auto px-4 h-14 md:h-16 flex items-center justify-between">
-          <button 
-            onClick={() => router.push('/pedidos')} 
+          <button
+            onClick={() => router.push('/pedidos')}
             className="p-2 -ml-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
           >
             <ArrowLeft className="w-5 h-5 text-neutral-700 dark:text-neutral-300" />
@@ -151,7 +151,7 @@ export default function OrderDetailsPage() {
             <h1 className="font-bold text-sm md:text-lg text-neutral-900 dark:text-white">Acompanhar Pedido</h1>
             <p className="text-[10px] md:text-xs text-neutral-500">#{order.id.slice(0, 8).toUpperCase()}</p>
           </div>
-          <div className="w-9" /> 
+          <div className="w-9" />
         </div>
       </header>
 
@@ -163,16 +163,27 @@ export default function OrderDetailsPage() {
         <div className="md:col-span-2 space-y-4 md:space-y-6">
 
           {/* 1. CARD STATUS */}
+          {/* 1. CARD STATUS */}
           <div className="bg-white dark:bg-neutral-900 p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-sm border border-neutral-100 dark:border-neutral-800 space-y-4 md:space-y-6">
             <div className="text-center space-y-1">
-              {/* Texto menor no mobile */}
               <h2 className="text-xl md:text-3xl font-bold text-[#9d0094]">
                 {isPixPending ? 'Falta pouco!' : isPaid ? 'Tudo certo!' : 'Pedido em andamento'}
               </h2>
+
+              {/* 👇 ALTERAÇÃO AQUI: Exibição destacada do tempo estimado */}
+              {!isPixPending && order.estimatedDeliveryTime && (
+                <div className="flex items-center justify-center gap-2 text-neutral-600 dark:text-neutral-300 mt-2 bg-neutral-100 dark:bg-neutral-800 py-1.5 px-4 rounded-full w-fit mx-auto">
+                  <Clock className="w-4 h-4 text-[#9d0094]" />
+                  <span className="text-sm font-semibold">
+                    Previsão: {order.estimatedDeliveryTime}
+                  </span>
+                </div>
+              )}
+
               <p className="text-xs md:text-sm text-neutral-500">
-                {isPixPending ? 'Realize o pagamento para confirmar' : 
-                 isPaid ? 'Pagamento recebido, vamos preparar!' :
-                 `Previsão de entrega: ${order.estimatedDeliveryTime || '30-40 min'}`}
+                {isPixPending ? 'Realize o pagamento para confirmar' :
+                  isPaid ? 'Pagamento recebido, vamos preparar!' :
+                    'Acompanhe o progresso abaixo'}
               </p>
             </div>
 
@@ -182,7 +193,7 @@ export default function OrderDetailsPage() {
           {/* 2. CARD PIX (SE NECESSÁRIO) */}
           {isPixPending && order.pixQrCodeBase64 && (
             <div className="animate-in slide-in-from-bottom-4 duration-500">
-              <PixPayment 
+              <PixPayment
                 qrCode={order.pixQrCode}
                 qrCodeBase64={order.pixQrCodeBase64}
                 expiresAt={order.pixExpiresAt}
@@ -207,7 +218,7 @@ export default function OrderDetailsPage() {
             <h3 className="font-bold text-base md:text-xl flex items-center gap-2 text-neutral-800 dark:text-white">
               <MapPin className="w-4 h-4 md:w-5 md:h-5 text-[#9d0094]" /> Entrega
             </h3>
-            
+
             <div className="pl-3 border-l-2 border-neutral-100 dark:border-neutral-800 ml-1 space-y-1">
               <p className="font-medium text-sm md:text-base text-neutral-900 dark:text-neutral-200">
                 {order.address?.street}, {order.address?.number}
@@ -225,7 +236,7 @@ export default function OrderDetailsPage() {
         {/* ================= COLUNA DIREITA (RESUMO - STICKY NO DESKTOP) ================= */}
         <div className="md:col-span-1">
           <div className="md:sticky md:top-20 space-y-4">
-            
+
             {/* 5. CARD RESUMO */}
             <div className="bg-white dark:bg-neutral-900 p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-sm border border-neutral-100 dark:border-neutral-800 space-y-4">
               <h3 className="font-bold text-base md:text-xl flex items-center gap-2 text-neutral-800 dark:text-white">
@@ -289,8 +300,8 @@ export default function OrderDetailsPage() {
             </div>
 
             {/* 6. BOTÃO DE AJUDA */}
-            <a 
-              href={`https://wa.me/5571999999999?text=Ajuda com pedido #${order.id.slice(0,8)}`}
+            <a
+              href={`https://wa.me/5571999999999?text=Ajuda com pedido #${order.id.slice(0, 8)}`}
               target="_blank"
               className="block w-full"
             >
