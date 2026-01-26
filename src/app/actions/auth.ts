@@ -19,6 +19,16 @@ export async function setAuthCookie(token: string) {
 
 export async function logout() {
   const cookieStore = await cookies();
+  
+  // Opção 1: O método padrão do Next.js
   cookieStore.delete('auth_token');
-  redirect('/login');
+
+  // Opção 2 (Garantia): Forçar expiração imediata sobrescrevendo
+  // Isso resolve casos onde o delete falha por conflito de path
+  cookieStore.set('auth_token', '', {
+    maxAge: 0,
+    path: '/', // Tem que bater com o path da criação
+  });
+
+  return { success: true };
 }
