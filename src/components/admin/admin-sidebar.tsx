@@ -101,6 +101,7 @@ export function AdminSidebar() {
                   key={item.href}
                   href={item.href}
                   onClick={() => setIsMobileOpen(false)}
+                  prefetch={false}
                   className={cn(
                     'flex items-center gap-3 px-4 py-3 rounded-xl transition-all group',
                     isActive
