@@ -16,10 +16,9 @@ import { Button } from '@/components/ui/button';
 import { useCart } from '@/hooks/useCart';
 import { toast } from 'sonner';
 import { CartItem } from '@/types/cart';
-  import { CouponInput } from '@/components/cart/coupon-input'; // 👈 Importamos o componente novo
-  
+
 // =====================================================
-// COMPONENTE DE ITEM DO CARRINHO (Mantido Igual)
+// COMPONENTE DE ITEM DO CARRINHO
 // =====================================================
 
 function CartItemCard({ item }: { item: CartItem }) {
@@ -207,10 +206,9 @@ export default function CarrinhoPage() {
               Adicionar mais itens
             </button>
 
-            {/* ✅ CUPOM DE DESCONTO (COMPONENTIZADO) */}
-            <section className="mb-6">
-              <CouponInput />
-            </section>
+            {/* ❌ REMOVIDO: Seção de Cupom 
+                (Agora está no checkout)
+            */}
 
             {/* Resumo */}
             <section className="bg-white dark:bg-neutral-900 rounded-2xl p-6 shadow-sm border border-neutral-200 dark:border-neutral-800">
@@ -226,35 +224,18 @@ export default function CarrinhoPage() {
                   <span className="font-medium">R$ {cart.subtotal.toFixed(2)}</span>
                 </div>
 
-                {/* ✅ EXIBIÇÃO DO DESCONTO */}
-                {cart.discount > 0 && (
-                  <div className="flex justify-between text-sm text-green-600 font-medium">
-                    <span>Desconto</span>
-                    <span>- R$ {cart.discount.toFixed(2)}</span>
-                  </div>
-                )}
-
-                <div className="flex justify-between text-sm">
-                  <span className="text-neutral-600 dark:text-neutral-400">
-                    Taxa de entrega
-                  </span>
-                  <span className="text-neutral-400 text-xs italic">
-                    Calculada no checkout
-                  </span>
-                </div>
-
                 <div className="pt-4 mt-4 border-t border-neutral-100 dark:border-neutral-800">
                   <div className="flex justify-between items-end">
                     <span className="font-bold text-lg text-neutral-900 dark:text-neutral-100">
-                      Total
+                      Total Estimado
                     </span>
                     <div className="text-right">
                       <span className="text-2xl font-black" style={{ color: '#9d0094' }}>
-                        {/* ✅ CÁLCULO FINAL COM DESCONTO */}
-                        R$ {Math.max(0, cart.subtotal - cart.discount).toFixed(2)}
+                        {/* Mostra apenas o subtotal aqui, pois taxas/descontos virão no checkout */}
+                        R$ {cart.subtotal.toFixed(2)}
                       </span>
                       <p className="text-[10px] text-neutral-400 mt-0.5">
-                        (Sem incluir taxa de entrega)
+                        (Taxa de entrega e descontos calculados na próxima etapa)
                       </p>
                     </div>
                   </div>
@@ -268,7 +249,7 @@ export default function CarrinhoPage() {
               className="w-full h-14 text-white font-bold text-lg rounded-xl mt-6 shadow-lg hover:brightness-110 transition-all active:scale-[0.98]"
               style={{ backgroundColor: '#139948' }}
             >
-              Escolher forma de pagamento
+              Ir para Pagamento
             </Button>
           </>
         )}

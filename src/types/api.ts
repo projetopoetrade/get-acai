@@ -14,6 +14,7 @@ export interface CreateOrderRequest {
   addressId?: string;
   notes?: string;
   changeFor?: number; // para pagamento em dinheiro
+  couponCode?: string;
 }
 
 export interface Address {
