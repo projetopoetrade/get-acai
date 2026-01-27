@@ -4,7 +4,7 @@
 import { Home, ClipboardList, User, ShoppingCart } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCart } from '@/hooks/useCart';
-import { useUI } from '@/contexts/ui-provider'; // ✅ 1. Importe o hook
+import { useUI } from '@/contexts/ui-provider';
 
 const navItems = [
   { id: 'home', label: 'Início', icon: Home, href: '/' },
@@ -17,10 +17,10 @@ export function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const cart = useCart();
-  const { showBottomNav } = useUI(); // ✅ 2. Pegue o estado do contexto
+  const { showBottomNav } = useUI();
   const itemCount = cart.itemCount;
 
-  // ✅ 3. Se o contexto mandar esconder (ex: modal aberto), não renderiza nada
+  // Se o contexto mandar esconder (ex: modal aberto), não renderiza nada
   if (!showBottomNav) {
     return null;
   }
@@ -36,7 +36,17 @@ export function BottomNav() {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-800 safe-area-bottom">
+    <nav 
+      data-bottom-nav  // ← IMPORTANTE: permite o contexto calcular a altura
+      className="
+        fixed bottom-0 left-0 right-0 z-50 
+        bg-white dark:bg-neutral-900 
+        border-t border-neutral-200 dark:border-neutral-800
+      "
+      style={{
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}
+    >
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-around py-2">
           {navItems.map((item) => {
@@ -55,13 +65,23 @@ export function BottomNav() {
                     : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
                   }
                 `}
+                aria-label={item.label}
+                aria-current={isActive ? 'page' : undefined}
               >
                 <div className="relative">
                   <Icon className={`w-6 h-6 ${isActive ? 'stroke-[2.5]' : ''}`} />
                   {isCart && itemCount > 0 && (
                     <span 
-                      className="absolute -top-2 -right-2 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold rounded-full text-white px-1"
-                      style={{ backgroundColor: '#9d0094' }}
+                      className="
+                        absolute -top-2 -right-2 
+                        min-w-[18px] h-[18px] 
+                        flex items-center justify-center 
+                        text-[10px] font-bold 
+                        rounded-full text-white px-1
+                        bg-[#9d0094]
+                        animate-in zoom-in duration-200
+                      "
+                      aria-label={`${itemCount} itens no carrinho`}
                     >
                       {itemCount > 99 ? '99+' : itemCount}
                     </span>

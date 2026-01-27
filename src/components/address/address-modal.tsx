@@ -137,7 +137,7 @@ export function AddressModal({ isOpen, onClose, onSave }: AddressModalProps) {
         rounded-2xl
         shadow-2xl 
         flex flex-col 
-        max-h-[90vh]
+        max-h-[90dvh]
         animate-in zoom-in-95 duration-200
       ">
         

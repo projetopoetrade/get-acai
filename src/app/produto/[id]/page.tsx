@@ -210,7 +210,7 @@ export default function ProductPage() {
   if (error || !product) return <div className="min-h-screen bg-background flex items-center justify-center"><p>Produto não encontrado</p></div>;
 
   return (
-    <div className="min-h-screen bg-background pb-32">
+    <div className="min-h-screen bg-background">
       
       <div className="md:hidden fixed top-0 left-0 right-0 z-20 pointer-events-none">
          <div className="p-4 flex justify-between">
@@ -240,7 +240,7 @@ export default function ProductPage() {
             <button className="absolute top-6 right-6 p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors z-10">
                 <X className="w-6 h-6" />
             </button>
-            <div className="relative w-full h-full max-w-5xl max-h-[85vh] p-2">
+            <div className="relative w-full h-full max-w-5xl max-h-[85dvh] p-2">
                 <Image src={product.imageUrl} alt={product.name} fill className="object-contain" priority />
             </div>
         </div>

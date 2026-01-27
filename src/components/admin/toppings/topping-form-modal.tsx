@@ -152,7 +152,7 @@ export function ToppingFormModal({
         className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
         onClick={onClose}
       />
-      <div className="relative bg-white dark:bg-neutral-900 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+      <div className="relative bg-white dark:bg-neutral-900 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden max-h-[90dvh] flex flex-col">
         {/* Header */}
         <div className="px-6 py-5 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center sticky top-0 bg-white dark:bg-neutral-900 z-10">
           <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-100">
