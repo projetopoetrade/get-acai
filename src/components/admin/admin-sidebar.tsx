@@ -14,8 +14,9 @@ import {
   BarChart3,
   Menu,
   X,
-  UploadCloud, // ✅ Novo ícone importado
-  Users
+  UploadCloud,
+  Users,
+  Ticket // ✅ Novo ícone importado
 } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
@@ -26,8 +27,10 @@ const menuItems = [
   { icon: Package, label: 'Produtos', href: '/admin/produtos' },
   { icon: Cookie, label: 'Toppings', href: '/admin/toppings' },
   { icon: Layers, label: 'Categorias', href: '/admin/categorias' },
+  // 👇 NOVO ITEM ADICIONADO AQUI
+  { icon: Ticket, label: 'Cupons', href: '/admin/coupons' }, 
   { icon: PackageCheck, label: 'Estoque', href: '/admin/estoque' },
-  { icon: UploadCloud, label: 'Uploads', href: '/admin/upload' }, // ✅ Nova rota adicionada
+  { icon: UploadCloud, label: 'Uploads', href: '/admin/upload' },
   { icon: MapPin, label: 'Bairros', href: '/admin/bairros' },
   { icon: BarChart3, label: 'Relatórios', href: '/admin/relatorios' },
   { icon: Settings, label: 'Configurações', href: '/admin/configuracoes' },

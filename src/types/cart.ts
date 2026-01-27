@@ -1,7 +1,7 @@
 // src/types/cart.ts
 import { Product } from './product';
 
-// ✅ NOVO: Definição centralizada dos métodos de pagamento
+// ✅ Definição centralizada dos métodos de pagamento
 export type PaymentMethod = 'pix' | 'credit' | 'debit' | 'cash';
 
 // Definição de um topping selecionado
@@ -33,7 +33,6 @@ export interface CartItem {
   totalPrice: number;
 }
 
-// Mantemos a estrutura pronta para o futuro, mas não usaremos visualmente agora
 export interface AppliedCoupon {
   code: string;
   type: 'percentage' | 'fixed' | 'freeDelivery';
@@ -51,17 +50,25 @@ export interface CartState {
   deliveryFee: number;
   total: number;
   itemCount: number;
+  
+  // ✅ ADICIONADO: Código em texto para persistência e exibição
+  couponCode: string | null;
+  
+  // ✅ ADICIONADO: Objeto completo (opcional, dependendo da sua lógica mista)
   appliedCoupon: AppliedCoupon | null;
 
+  // Ações
   addItem: (product: Product, quantity: number, customization?: Customization) => void;
   removeItem: (itemId: string) => void;
   updateItemQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
   
-  // Funções de cupom continuam existindo no código para não quebrar o hook,
-  // mas não serão chamadas na UI por enquanto
   applyCoupon: (coupon: AppliedCoupon) => void;
   removeCoupon: () => void;
   
   setDeliveryFee: (fee: number) => void;
+
+  // ✅ ADICIONADO: Ações necessárias para a integração com Backend
+  setCouponCode: (code: string | null) => void;
+  setDiscount: (amount: number) => void;
 }

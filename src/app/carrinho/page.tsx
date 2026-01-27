@@ -9,22 +9,17 @@ import {
   Plus, 
   Trash2, 
   ShoppingBag,
-  Tag,
-  Ticket,
-  Cherry,
-  AlertCircle
+  Cherry
 } from 'lucide-react';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/hooks/useCart';
 import { toast } from 'sonner';
 import { CartItem } from '@/types/cart';
-import { sanitizeCouponCode } from '@/lib/sanitize';
-import { couponSchema } from '@/lib/validations';
-import { couponsService } from '@/services/coupons';
-
+  import { CouponInput } from '@/components/cart/coupon-input'; // 👈 Importamos o componente novo
+  
 // =====================================================
-// COMPONENTE DE ITEM DO CARRINHO
+// COMPONENTE DE ITEM DO CARRINHO (Mantido Igual)
 // =====================================================
 
 function CartItemCard({ item }: { item: CartItem }) {
@@ -40,11 +35,9 @@ function CartItemCard({ item }: { item: CartItem }) {
     }
   };
 
-  // Montar descrição das customizações
   const customizationDetails: string[] = [];
   
   if (item.customization) {
-    // Toppings
     const freeToppings = item.customization.toppings.filter(t => t.isFree);
     const paidToppings = item.customization.toppings.filter(t => !t.isFree);
     
@@ -60,12 +53,10 @@ function CartItemCard({ item }: { item: CartItem }) {
       );
     }
 
-    // Talheres
     if (item.customization.wantsCutlery) {
       customizationDetails.push('Com talheres');
     }
 
-    // Observações
     if (item.customization.observations) {
       customizationDetails.push(`"${item.customization.observations}"`);
     }
@@ -99,7 +90,6 @@ function CartItemCard({ item }: { item: CartItem }) {
                 {item.product.name}
               </h3>
               
-              {/* Customizações */}
               {customizationDetails.length > 0 && (
                 <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 line-clamp-2">
                   {customizationDetails.join(' • ')}
@@ -107,7 +97,6 @@ function CartItemCard({ item }: { item: CartItem }) {
               )}
             </div>
 
-            {/* Botão remover */}
             <button
               onClick={() => {
                 removeItem(item.id);
@@ -119,13 +108,11 @@ function CartItemCard({ item }: { item: CartItem }) {
             </button>
           </div>
 
-          {/* Preço e quantidade */}
           <div className="flex items-center justify-between mt-3">
             <span className="font-bold" style={{ color: '#9d0094' }}>
               R$ {item.totalPrice.toFixed(2)}
             </span>
 
-            {/* Controle de quantidade */}
             <div className="flex items-center gap-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg p-1">
               <button
                 onClick={() => handleQuantityChange(item.quantity - 1)}
@@ -162,63 +149,8 @@ function CartItemCard({ item }: { item: CartItem }) {
 export default function CarrinhoPage() {
   const router = useRouter();
   const cart = useCart();
-  const [couponCode, setCouponCode] = useState('');
-  const [couponLoading, setCouponLoading] = useState(false);
-  const [couponError, setCouponError] = useState('');
-
+  
   const isEmpty = cart.items.length === 0;
-
-  // Validar cupom via API
-  const handleApplyCoupon = async () => {
-    setCouponLoading(true);
-    setCouponError('');
-
-    // Validação com Zod
-    const result = couponSchema.safeParse({ code: couponCode });
-
-    if (!result.success) {
-      const firstError = result.error.issues[0];
-      setCouponError(firstError?.message || 'Código inválido');
-      setCouponLoading(false);
-      return;
-    }
-
-    try {
-      // Validar cupom via API
-      const response = await couponsService.validate({
-        code: result.data.code,
-        subtotal: cart.subtotal,
-        productIds: cart.items.map(item => item.product.id),
-      });
-
-      if (response.valid && response.coupon && response.discountAmount !== undefined) {
-        // Mapear resposta da API para formato do carrinho
-        const couponType = response.coupon.type === 'percentage' 
-          ? 'percentage' 
-          : response.coupon.type === 'fixed'
-          ? 'fixed'
-          : 'freeDelivery';
-
-        cart.applyCoupon({
-          code: response.coupon.code,
-          type: couponType,
-          value: response.coupon.value,
-          minOrderValue: response.coupon.minOrderValue,
-        });
-
-        toast.success('Cupom aplicado!', { 
-          description: response.message || 'Desconto aplicado com sucesso' 
-        });
-        setCouponCode('');
-      } else {
-        setCouponError(response.message || 'Cupom inválido ou expirado');
-      }
-    } catch (error: any) {
-      setCouponError(error.response?.data?.message || 'Erro ao validar cupom');
-    } finally {
-      setCouponLoading(false);
-    }
-  };
 
   // Ir para checkout
   const handleCheckout = () => {
@@ -226,12 +158,10 @@ export default function CarrinhoPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
+    <div className="min-h-screen bg-neutral-50 dark:bg-black">
       <Header />
 
-      {/* Conteúdo */}
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto px-4 py-6 pb-32">
         <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-6">
           Meu Carrinho
         </h1>
@@ -253,7 +183,7 @@ export default function CarrinhoPage() {
             </p>
             <Button
               onClick={() => router.push('/')}
-              className="text-white"
+              className="text-white font-bold"
               style={{ backgroundColor: '#9d0094' }}
             >
               Ver cardápio
@@ -271,87 +201,24 @@ export default function CarrinhoPage() {
             {/* Adicionar mais itens */}
             <button
               onClick={() => router.push('/')}
-              className="w-full py-3 px-4 rounded-xl border-2 border-dashed border-neutral-300 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:border-[#9d0094] hover:text-[#9d0094] transition-colors flex items-center justify-center gap-2 mb-6"
+              className="w-full py-3 px-4 rounded-xl border-2 border-dashed border-neutral-300 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:border-[#9d0094] hover:text-[#9d0094] transition-colors flex items-center justify-center gap-2 mb-6 font-medium"
             >
               <Plus className="w-5 h-5" />
               Adicionar mais itens
             </button>
 
-            {/* Cupom de desconto */}
-            <section className="bg-white dark:bg-neutral-900 rounded-2xl p-4 border border-neutral-200 dark:border-neutral-800 mb-4">
-              <h3 className="font-semibold text-neutral-800 dark:text-neutral-200 mb-3 flex items-center gap-2">
-                <Ticket className="w-5 h-5" style={{ color: '#9d0094' }} />
-                Cupom de desconto
-              </h3>
-
-              {cart.appliedCoupon ? (
-                /* Cupom aplicado */
-                <div className="flex items-center justify-between p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-                  <div className="flex items-center gap-2">
-                    <Tag className="w-4 h-4 text-green-600" />
-                    <span className="font-medium text-green-700 dark:text-green-400">
-                      {cart.appliedCoupon.code}
-                    </span>
-                    <span className="text-sm text-green-600 dark:text-green-500">
-                      {cart.appliedCoupon.type === 'percentage' && `${cart.appliedCoupon.value}% OFF`}
-                      {cart.appliedCoupon.type === 'fixed' && `R$ ${cart.appliedCoupon.value} OFF`}
-                      {cart.appliedCoupon.type === 'freeDelivery' && 'Frete Grátis'}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => {
-                      cart.removeCoupon();
-                      toast.success('Cupom removido');
-                    }}
-                    className="text-sm text-red-500 hover:text-red-600 font-medium"
-                  >
-                    Remover
-                  </button>
-                </div>
-              ) : (
-                /* Input de cupom */
-                <div>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={couponCode}
-                      onChange={(e) => {
-                        setCouponCode(sanitizeCouponCode(e.target.value));
-                        setCouponError('');
-                      }}
-                      maxLength={20}
-                      placeholder="Digite o código"
-                      className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border-2 border-neutral-200 dark:border-neutral-700 bg-transparent focus:border-[#9d0094] focus:outline-none transition-colors text-sm uppercase"
-                    />
-                    <Button
-                      onClick={handleApplyCoupon}
-                      disabled={couponLoading || !couponCode.trim()}
-                      className="px-4 text-white flex-shrink-0 text-sm"
-                      style={{ backgroundColor: '#9d0094' }}
-                    >
-                      {couponLoading ? '...' : 'Aplicar'}
-                    </Button>
-                  </div>
-                  {couponError && (
-                    <p className="text-sm text-red-500 mt-2 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      {couponError}
-                    </p>
-                  )}
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-2">
-                    Teste: ACAI10 (10% off) ou FRETE (frete grátis)
-                  </p>
-                </div>
-              )}
+            {/* ✅ CUPOM DE DESCONTO (COMPONENTIZADO) */}
+            <section className="mb-6">
+              <CouponInput />
             </section>
 
             {/* Resumo */}
-            <section className="bg-card rounded-2xl p-4">
-              <h3 className="font-semibold text-neutral-800 dark:text-neutral-200 mb-4">
+            <section className="bg-white dark:bg-neutral-900 rounded-2xl p-6 shadow-sm border border-neutral-200 dark:border-neutral-800">
+              <h3 className="font-semibold text-neutral-800 dark:text-neutral-200 mb-4 text-lg">
                 Resumo do pedido
               </h3>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-neutral-600 dark:text-neutral-400">
                     Subtotal ({cart.itemCount} {cart.itemCount === 1 ? 'item' : 'itens'})
@@ -359,14 +226,14 @@ export default function CarrinhoPage() {
                   <span className="font-medium">R$ {cart.subtotal.toFixed(2)}</span>
                 </div>
 
+                {/* ✅ EXIBIÇÃO DO DESCONTO */}
                 {cart.discount > 0 && (
-                  <div className="flex justify-between text-sm text-green-600">
+                  <div className="flex justify-between text-sm text-green-600 font-medium">
                     <span>Desconto</span>
                     <span>- R$ {cart.discount.toFixed(2)}</span>
                   </div>
                 )}
 
-                {/* --- MUDANÇA: Taxa de entrega fixa --- */}
                 <div className="flex justify-between text-sm">
                   <span className="text-neutral-600 dark:text-neutral-400">
                     Taxa de entrega
@@ -376,19 +243,21 @@ export default function CarrinhoPage() {
                   </span>
                 </div>
 
-                <div className="pt-3 mt-3 border-t border-neutral-100 dark:border-neutral-800">
-                  <div className="flex justify-between">
-                    <span className="font-semibold text-neutral-900 dark:text-neutral-100">
+                <div className="pt-4 mt-4 border-t border-neutral-100 dark:border-neutral-800">
+                  <div className="flex justify-between items-end">
+                    <span className="font-bold text-lg text-neutral-900 dark:text-neutral-100">
                       Total
                     </span>
-                    <span className="text-xl font-bold" style={{ color: '#9d0094' }}>
-                      {/* --- MUDANÇA: Total sem frete --- */}
-                      R$ {Math.max(0, cart.subtotal - cart.discount).toFixed(2)}
-                    </span>
+                    <div className="text-right">
+                      <span className="text-2xl font-black" style={{ color: '#9d0094' }}>
+                        {/* ✅ CÁLCULO FINAL COM DESCONTO */}
+                        R$ {Math.max(0, cart.subtotal - cart.discount).toFixed(2)}
+                      </span>
+                      <p className="text-[10px] text-neutral-400 mt-0.5">
+                        (Sem incluir taxa de entrega)
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-xs text-right text-neutral-400 mt-1">
-                    (Sem incluir taxa de entrega)
-                  </p>
                 </div>
               </div>
             </section>
@@ -396,7 +265,7 @@ export default function CarrinhoPage() {
             {/* Botão de finalizar */}
             <Button
               onClick={handleCheckout}
-              className="w-full h-14 text-white font-semibold text-base rounded-xl mt-4 mb-4"
+              className="w-full h-14 text-white font-bold text-lg rounded-xl mt-6 shadow-lg hover:brightness-110 transition-all active:scale-[0.98]"
               style={{ backgroundColor: '#139948' }}
             >
               Escolher forma de pagamento

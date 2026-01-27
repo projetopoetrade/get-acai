@@ -164,13 +164,17 @@ export function AddressModal({ isOpen, onClose, onSave }: AddressModalProps) {
         >
           <div className="grid grid-cols-12 gap-x-4 gap-y-5">
             
-            {/* Apelido */}
+            {/* Apelido - Com bloqueio de números */}
             <div className="col-span-12 space-y-1.5">
               <Label htmlFor="label" className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Apelido (Ex: Casa)</Label>
               <Input
                 id="label"
                 value={formData.label}
-                onChange={(e) => handleChange('label', e.target.value)}
+                onChange={(e) => {
+                    // ✅ AQUI: Remove números (0-9)
+                    const valueWithoutNumbers = e.target.value.replace(/\d/g, ''); 
+                    handleChange('label', valueWithoutNumbers);
+                }}
                 placeholder="Como você chama este local?"
                 className={`h-11 bg-neutral-50 border-neutral-200 dark:bg-neutral-800/50 dark:border-neutral-700 focus:bg-white transition-all ${errors.label ? 'border-red-500 bg-red-50' : ''}`}
               />
@@ -272,7 +276,7 @@ export function AddressModal({ isOpen, onClose, onSave }: AddressModalProps) {
           </div>
         </form>
 
-        {/* Footer Ajustado: Padding reduzido em cima (pt-3) */}
+        {/* Footer */}
         <div className="px-6 pt-3 pb-5 border-t border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 rounded-b-2xl">
           <Button
             onClick={handleSubmit}
