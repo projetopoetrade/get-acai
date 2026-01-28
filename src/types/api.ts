@@ -71,6 +71,8 @@ export interface Product {
   category?: string;    // ← para ProductCard
   categoryName?: string;
   originalPrice?: number;
+  isCombo?: boolean;
+  comboCount?: number;
   size?: {
     id: string;
     name: string;
