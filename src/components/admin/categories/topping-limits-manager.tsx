@@ -94,7 +94,7 @@ export function ToppingLimitsManager({ toppingCategories, sizeToppingLimits: ini
       )
   
       // Ajuste a URL para incluir '/products' se necessário, conforme seu teste no Postman
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/products/admin/size-topping-limits`
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/admin/size-topping-limits`
   
       // O Postman mostra que o endpoint aceita PATCH para criar/atualizar
       const response = await fetch(url, {
