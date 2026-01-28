@@ -23,9 +23,6 @@ async function getOrder(id: string) {
     redirect('/login?redirect=/admin/pedidos')
   }
   
-  // Para admin, buscamos da lista completa de pedidos e filtramos pelo ID
-  // Isso evita o problema do findOneOwned que requer o ID do usuário
-  // Buscamos sem limite para garantir que encontremos o pedido
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/orders/admin/all?limit=1000`, {
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -45,7 +42,6 @@ async function getOrder(id: string) {
 
   const orders = await response.json()
   
-  // Normaliza os IDs para comparação (remove hífens e converte para lowercase)
   const normalizedId = String(id || '').toLowerCase().replace(/-/g, '')
   const order = orders.find((o: any) => {
     const orderId = String(o.id || '').toLowerCase().replace(/-/g, '')
@@ -53,10 +49,6 @@ async function getOrder(id: string) {
   })
   
   if (!order) {
-    // Log para debug
-    console.error('Pedido não encontrado. ID buscado:', id)
-    console.error('Total de pedidos retornados:', orders.length)
-    console.error('IDs disponíveis (primeiros 5):', orders.slice(0, 5).map((o: any) => o.id))
     throw new Error('Pedido não encontrado')
   }
 
@@ -83,7 +75,6 @@ const paymentMethodMap = {
 }
 
 export default async function OrderDetailsPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
-  // Next.js 13+ pode passar params como Promise
   const resolvedParams = await Promise.resolve(params)
   const orderId = resolvedParams.id
   
@@ -158,109 +149,88 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {order.items.map((item: any, index: number) => (
-                  <div key={index}>
-                    <div className="flex justify-between items-start gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-base text-neutral-900 dark:text-neutral-100">
-                            {item.quantity}x
-                          </span>
-                          <span className="font-semibold text-base text-neutral-900 dark:text-neutral-100">
-                            {item.product?.name || item.productName}
-                          </span>
+              <div className="space-y-6">
+                {order.items.map((item: any, index: number) => {
+                  // ✅ LÓGICA NOVA: Usar as notas formatadas
+                  const hasNotes = !!item.notes && item.notes.trim().length > 0;
+                  
+                  // 1. Divide as notas por [ITEM X]
+                  const noteSections = hasNotes 
+                    ? item.notes.split(/(?=\[ITEM \d+\]:)/g).map((s: string) => s.trim()).filter(Boolean)
+                    : [];
+
+                  return (
+                    <div key={index}>
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="flex-1 min-w-0"> {/* min-w-0 é importante para o texto não estourar */}
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-lg text-neutral-900 dark:text-neutral-100">
+                              {item.quantity}x
+                            </span>
+                            <span className="font-semibold text-lg text-neutral-900 dark:text-neutral-100">
+                              {item.product?.name || item.productName}
+                            </span>
+                          </div>
+                          
+                          {/* ✅ SUBSTITUIÇÃO DA LISTA ANTIGA PELA LISTA VERTICAL DE NOTAS */}
+                          {hasNotes ? (
+                            <div className="mt-3 space-y-3 w-full">
+                              {noteSections.map((section: string, i: number) => {
+                                // 2. Divide cada seção por vírgula para criar lista vertical
+                                const ingredients = section.split(',').map(s => s.trim().replace(/\.$/, ''));
+
+                                return (
+                                  <div 
+                                    key={i} 
+                                    className="w-full text-sm text-neutral-700 dark:text-neutral-300 bg-amber-50/80 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800/30"
+                                  >
+                                    {ingredients.map((ing, j) => (
+                                      <div key={j} className={`leading-relaxed ${j > 0 ? 'mt-1.5 border-t border-amber-200/50 dark:border-amber-800/30 pt-1.5' : ''}`}>
+                                        {ing}
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-neutral-500 mt-2 italic">
+                              Sem adicionais
+                            </p>
+                          )}
                         </div>
                         
-                        {/* Toppings */}
-                        {item.toppings && item.toppings.length > 0 && (
-                          <div className="mt-2 ml-6 space-y-1.5">
-                            {item.toppings.map((topping: any, idx: number) => (
-                              <div key={idx} className="text-sm text-neutral-600 dark:text-neutral-400 flex items-center gap-2">
-                                {topping.icon && <span className="text-base">{topping.icon}</span>}
-                                <span>{topping.quantity}x {topping.name || topping.toppingName}</span>
-                                {!topping.isFree && topping.price && (
-                                  <span className="text-xs font-medium text-neutral-500">
-                                    (+R$ {Number(topping.price || topping.toppingPrice || 0).toFixed(2)})
-                                  </span>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Observações */}
-                        {item.notes && (
-                          <p className="text-sm text-amber-600 dark:text-amber-500 mt-2 font-medium">
-                            📝 {item.notes}
-                          </p>
-                        )}
+                        <span className="font-bold text-lg text-neutral-900 dark:text-neutral-100 whitespace-nowrap">
+                          R$ {(() => {
+                            const price = item.subtotal || 
+                              item.totalPrice || 
+                              (item.productPrice ? Number(item.productPrice) * item.quantity : null) ||
+                              (item.product?.price ? Number(item.product.price) * item.quantity : null);
+                            
+                            if (!price) return '0.00';
+                            const numPrice = typeof price === 'string' ? parseFloat(price) : Number(price);
+                            return isNaN(numPrice) ? '0.00' : numPrice.toFixed(2);
+                          })()}
+                        </span>
                       </div>
-                      <span className="font-bold text-lg text-neutral-900 dark:text-neutral-100 whitespace-nowrap">
-                        R$ {(() => {
-                          // Tenta diferentes campos de preço que podem vir da API
-                          // Prioridade: subtotal > totalPrice > productPrice * quantity > product.price * quantity
-                          const price = item.subtotal || 
-                            item.totalPrice || 
-                            (item.productPrice ? Number(item.productPrice) * item.quantity : null) ||
-                            (item.product?.price ? Number(item.product.price) * item.quantity : null);
-                          
-                          if (!price) return '0.00';
-                          
-                          const numPrice = typeof price === 'string' ? parseFloat(price) : Number(price);
-                          return isNaN(numPrice) ? '0.00' : numPrice.toFixed(2);
-                        })()}
-                      </span>
+                      {index < order.items.length - 1 && <Separator className="mt-6" />}
                     </div>
-                    {index < order.items.length - 1 && <Separator className="mt-4" />}
-                  </div>
-                ))}
-              </div>
-
-              {/* Totais */}
-              <Separator className="my-6" />
-              <div className="space-y-3 bg-neutral-50 dark:bg-neutral-900/50 rounded-xl p-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-neutral-600 dark:text-neutral-400">Subtotal</span>
-                  <span className="font-medium text-neutral-900 dark:text-neutral-100">
-                    R$ {Number(order.subtotal).toFixed(2)}
-                  </span>
-                </div>
-                {Number(order.deliveryFee) > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-neutral-600 dark:text-neutral-400">Taxa de Entrega</span>
-                    <span className="font-medium text-neutral-900 dark:text-neutral-100">
-                      R$ {Number(order.deliveryFee).toFixed(2)}
-                    </span>
-                  </div>
-                )}
-                {Number(order.discount) > 0 && (
-                  <div className="flex justify-between text-sm text-green-600 dark:text-green-500">
-                    <span className="font-medium">Desconto</span>
-                    <span className="font-bold">-R$ {Number(order.discount).toFixed(2)}</span>
-                  </div>
-                )}
-                <Separator />
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-bold text-neutral-900 dark:text-neutral-100">Total</span>
-                  <span className="text-2xl font-bold" style={{ color: '#9d0094' }}>
-                    R$ {Number(order.total).toFixed(2)}
-                  </span>
-                </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
 
-          {/* Observações do Pedido */}
+          {/* Observações Gerais do Pedido */}
           {order.notes && (
-            <Card className="border-2 border-amber-200 dark:border-amber-900/30 bg-amber-50/50 dark:bg-amber-950/20 shadow-sm">
+            <Card className="border-2 border-red-200 dark:border-red-900/30 bg-red-50/50 dark:bg-red-950/20 shadow-sm">
               <CardHeader className="pb-4">
-                <CardTitle className="text-xl font-bold text-amber-900 dark:text-amber-100">
-                  Observações do Pedido
+                <CardTitle className="text-xl font-bold text-red-900 dark:text-red-100">
+                  Observações Gerais
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed">
+                <p className="text-base text-red-800 dark:text-red-200 leading-relaxed font-medium">
                   {order.notes}
                 </p>
               </CardContent>
@@ -349,6 +319,28 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
                   {paymentMethodMap[order.paymentMethod as keyof typeof paymentMethodMap] || order.paymentMethod}
                 </span>
               </div>
+              
+              <div className="space-y-2 pt-2 border-t border-neutral-100 dark:border-neutral-800">
+                 <div className="flex justify-between text-sm">
+                    <span>Subtotal</span>
+                    <span>R$ {Number(order.subtotal).toFixed(2)}</span>
+                 </div>
+                 <div className="flex justify-between text-sm">
+                    <span>Entrega</span>
+                    <span>R$ {Number(order.deliveryFee).toFixed(2)}</span>
+                 </div>
+                 {Number(order.discount) > 0 && (
+                    <div className="flex justify-between text-sm text-green-600">
+                        <span>Desconto</span>
+                        <span>- R$ {Number(order.discount).toFixed(2)}</span>
+                    </div>
+                 )}
+                 <div className="flex justify-between text-base font-bold pt-2">
+                    <span>Total</span>
+                    <span className="text-[#9d0094]">R$ {Number(order.total).toFixed(2)}</span>
+                 </div>
+              </div>
+
               {order.paymentMethod === 'cash' && order.changeFor && (
                 <div className="text-sm space-y-1 p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-900/30">
                   <p className="text-neutral-600 dark:text-neutral-400">Troco para:</p>
@@ -356,7 +348,7 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
                     R$ {Number(order.changeFor).toFixed(2)}
                   </p>
                   <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-1">
-                    Troco: R$ {(Number(order.changeFor) - Number(order.total)).toFixed(2)}
+                    Troco a levar: R$ {(Number(order.changeFor) - Number(order.total)).toFixed(2)}
                   </p>
                 </div>
               )}
@@ -381,17 +373,6 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
                   </span>
                 </div>
               </div>
-              {order.updatedAt && order.updatedAt !== order.createdAt && (
-                <div className="flex items-center gap-3 p-2">
-                  <Clock className="h-4 w-4 text-neutral-500 dark:text-neutral-400 flex-shrink-0" />
-                  <div className="flex-1">
-                    <span className="text-neutral-600 dark:text-neutral-400">Atualizado em:</span>
-                    <span className="ml-2 font-medium text-neutral-900 dark:text-neutral-100">
-                      {new Date(order.updatedAt).toLocaleString('pt-BR')}
-                    </span>
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
 

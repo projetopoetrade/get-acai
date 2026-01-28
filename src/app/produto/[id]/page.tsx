@@ -293,9 +293,8 @@ export default function ProductPage() {
       if (config.wantsCutlery) mergedCutlery = true;
 
       // Cria uma observação estruturada para a cozinha
-      const stepName = product.isCombo ? `[ITEM ${index + 1}]: ` : '';
+      const stepName = product.isCombo ? `[ITEM ${index + 1}]` : '';
       
-      // Lista toppings deste passo para a observação
       const stepToppingsNames = Object.entries(config.toppingQuantities)
         .map(([tId, tQty]) => {
           const tName = toppings.find(t => t.id === tId)?.name;
@@ -303,10 +302,21 @@ export default function ProductPage() {
         })
         .join(', ');
 
-      const stepObs = config.observations ? `Obs: ${config.observations}` : '';
-      const cutleryObs = config.wantsCutlery ? 'Com talher' : 'Sem talher';
+      const parts = [];
+      if (stepName) parts.push(stepName);
+      // Se tiver toppings, mostra. Se não, escreve "Puro" ou nada.
+      if (stepToppingsNames) {
+        parts.push(stepToppingsNames);
+      } else {
+         parts.push("Sem adicionais");
+      }
 
-      mergedObservations += `${stepName}${stepToppingsNames}. ${cutleryObs}. ${stepObs}\n\n`;
+      parts.push(config.wantsCutlery ? 'Com talher' : 'Sem talher');
+      
+      if (config.observations) parts.push(`Obs: ${config.observations}`);
+
+      // Junta tudo com " - " ou ". " para ficar bonito
+      mergedObservations += parts.join(' - ') + '\n';
     });
 
     // 3. Cria a customização usando o hook existente

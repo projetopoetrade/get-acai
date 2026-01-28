@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 // =========================================================
-// COMPONENTE VISUAL: TIMELINE DE PROGRESSO (Responsivo)
+// COMPONENTE VISUAL: TIMELINE DE PROGRESSO
 // =========================================================
 const STEPS = [
   { id: 'confirmed', label: 'Confirmado', icon: CheckCircle2 },
@@ -48,10 +48,7 @@ function OrderTimeline({ status }: { status: string }) {
   return (
     <div className="w-full py-2 md:py-4">
       <div className="relative flex justify-between items-center px-2">
-        {/* Linha de fundo */}
         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 md:h-1 bg-neutral-200 dark:bg-neutral-800 -z-10" />
-
-        {/* Linha de progresso */}
         <div
           className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 md:h-1 bg-[#9d0094] transition-all duration-1000 ease-out -z-10"
           style={{ width: `${Math.max(0, (currentStep / (STEPS.length - 1)) * 100)}%` }}
@@ -59,23 +56,19 @@ function OrderTimeline({ status }: { status: string }) {
 
         {STEPS.map((step, idx) => {
           const isActive = idx <= currentStep;
-
           return (
             <div key={step.id} className="flex flex-col items-center gap-1.5 md:gap-2 bg-neutral-50 dark:bg-neutral-950 px-1">
               <div
                 className={cn(
-                  // Mobile: w-8 h-8 | Desktop: w-10 h-10
                   "w-8 h-8 md:w-12 md:h-12 rounded-full flex items-center justify-center border-2 transition-all duration-500",
                   isActive
                     ? "bg-[#9d0094] border-[#9d0094] text-white shadow-lg shadow-[#9d0094]/30 scale-110"
                     : "bg-white dark:bg-neutral-800 border-neutral-300 dark:border-neutral-700 text-neutral-400"
                 )}
               >
-                {/* Ícones menores no mobile */}
                 <step.icon className="w-4 h-4 md:w-6 md:h-6" />
               </div>
               <span className={cn(
-                // Texto bem pequeno no mobile
                 "text-[9px] md:text-xs font-bold uppercase tracking-wide transition-colors duration-300",
                 isActive ? "text-[#9d0094]" : "text-neutral-400"
               )}>
@@ -98,7 +91,6 @@ export default function OrderDetailsPage() {
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Polling (igual ao anterior)
   useEffect(() => {
     if (!id || id === 'undefined') return;
     let interval: NodeJS.Timeout;
@@ -155,22 +147,19 @@ export default function OrderDetailsPage() {
         </div>
       </header>
 
-      {/* --- LAYOUT GRID RESPONSIVO --- */}
-      {/* Mobile: 1 coluna | Desktop: 2 colunas (Principal + Lateral Sticky) */}
+      {/* --- CONTEÚDO --- */}
       <main className="max-w-5xl mx-auto p-3 md:p-6 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
 
-        {/* ================= COLUNA ESQUERDA (STATUS E INFO) ================= */}
+        {/* COLUNA ESQUERDA */}
         <div className="md:col-span-2 space-y-4 md:space-y-6">
 
-          {/* 1. CARD STATUS */}
-          {/* 1. CARD STATUS */}
+          {/* CARD STATUS */}
           <div className="bg-white dark:bg-neutral-900 p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-sm border border-neutral-100 dark:border-neutral-800 space-y-4 md:space-y-6">
             <div className="text-center space-y-1">
               <h2 className="text-xl md:text-3xl font-bold text-[#9d0094]">
                 {isPixPending ? 'Falta pouco!' : isPaid ? 'Tudo certo!' : 'Pedido em andamento'}
               </h2>
 
-              {/* 👇 ALTERAÇÃO AQUI: Exibição destacada do tempo estimado */}
               {!isPixPending && order.estimatedDeliveryTime && (
                 <div className="flex items-center justify-center gap-2 text-neutral-600 dark:text-neutral-300 mt-2 bg-neutral-100 dark:bg-neutral-800 py-1.5 px-4 rounded-full w-fit mx-auto">
                   <Clock className="w-4 h-4 text-[#9d0094]" />
@@ -190,7 +179,7 @@ export default function OrderDetailsPage() {
             <OrderTimeline status={order.status} />
           </div>
 
-          {/* 2. CARD PIX (SE NECESSÁRIO) */}
+          {/* CARD PIX */}
           {isPixPending && order.pixQrCodeBase64 && (
             <div className="animate-in slide-in-from-bottom-4 duration-500">
               <PixPayment
@@ -201,7 +190,7 @@ export default function OrderDetailsPage() {
             </div>
           )}
 
-          {/* 3. CARD SUCESSO PAGAMENTO */}
+          {/* CARD SUCESSO */}
           {isPaid && (
             <div className="bg-green-500 text-white p-5 md:p-8 rounded-2xl md:rounded-3xl shadow-lg shadow-green-500/20 text-center animate-in zoom-in duration-300 relative overflow-hidden">
               <div className="absolute inset-0 bg-[url('/confetti.png')] opacity-20 mix-blend-overlay"></div>
@@ -213,7 +202,7 @@ export default function OrderDetailsPage() {
             </div>
           )}
 
-          {/* 4. CARD ENTREGA (Versão Desktop e Mobile) */}
+          {/* CARD ENTREGA */}
           <div className="bg-white dark:bg-neutral-900 p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-sm border border-neutral-100 dark:border-neutral-800 space-y-3">
             <h3 className="font-bold text-base md:text-xl flex items-center gap-2 text-neutral-800 dark:text-white">
               <MapPin className="w-4 h-4 md:w-5 md:h-5 text-[#9d0094]" /> Entrega
@@ -233,11 +222,10 @@ export default function OrderDetailsPage() {
           </div>
         </div>
 
-        {/* ================= COLUNA DIREITA (RESUMO - STICKY NO DESKTOP) ================= */}
+        {/* COLUNA DIREITA (RESUMO) */}
         <div className="md:col-span-1">
           <div className="md:sticky md:top-20 space-y-4">
 
-            {/* 5. CARD RESUMO */}
             <div className="bg-white dark:bg-neutral-900 p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-sm border border-neutral-100 dark:border-neutral-800 space-y-4">
               <h3 className="font-bold text-base md:text-xl flex items-center gap-2 text-neutral-800 dark:text-white">
                 <ShoppingBag className="w-4 h-4 md:w-5 md:h-5 text-[#9d0094]" /> Resumo
@@ -245,41 +233,59 @@ export default function OrderDetailsPage() {
 
               <div className="space-y-4 md:space-y-6">
                 {order.items.map((item: any, idx: number) => {
-                  const toppings = item.toppings || item.customization?.toppings || [];
+                  const hasNotes = !!item.notes && item.notes.trim().length > 0;
+                  
+                  // 1. Divide as notas por [ITEM X] para manter estrutura de combos
+                  const noteSections = hasNotes 
+                    ? item.notes.split(/(?=\[ITEM \d+\]:)/g).map((s: string) => s.trim()).filter(Boolean)
+                    : [];
 
                   return (
                     <div key={idx} className="space-y-2">
-                      <div className="flex gap-3">
-                        <div className="w-8 h-8 md:w-10 md:h-10 bg-neutral-100 dark:bg-neutral-800 rounded-lg flex items-center justify-center font-bold text-xs md:text-sm text-neutral-600 dark:text-neutral-400 shrink-0">
+                      <div className="flex gap-3 items-start">
+                        {/* Qtd Principal */}
+                        <div className="w-8 h-8 md:w-10 md:h-10 bg-neutral-100 dark:bg-neutral-800 rounded-lg flex items-center justify-center font-bold text-xs md:text-sm text-neutral-600 dark:text-neutral-400 shrink-0 mt-1">
                           {item.quantity}x
                         </div>
+                        
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-xs md:text-sm text-neutral-900 dark:text-white truncate">
-                            {item.productName}
-                          </p>
+                          <div className="flex justify-between items-start gap-2">
+                            <p className="font-bold text-xs md:text-sm text-neutral-900 dark:text-white truncate mt-1.5">
+                              {item.productName}
+                            </p>
+                            
+                            <div className="text-xs md:text-sm font-semibold text-neutral-700 dark:text-neutral-300 mt-1.5">
+                              R$ {Number(item.subtotal).toFixed(2)}
+                            </div>
+                          </div>
 
-                          {/* ✅ LISTA DE TOPPINGS COM PREÇO */}
-                          {toppings.length > 0 && (
-                            <ul className="mt-1.5 space-y-1">
-                              {toppings.map((t: any, tIdx: number) => (
-                                <li key={tIdx} className="text-[10px] md:text-xs text-neutral-500 flex justify-between">
-                                  <span>+ {t.toppingName || t.name}</span>
-                                  {Number(t.price) > 0 && (
-                                    <span className="text-neutral-400">R$ {Number(t.price).toFixed(2)}</span>
-                                  )}
-                                </li>
-                              ))}
-                            </ul>
-                          )}
+                          {/* ✅ ÁREA DE NOTAS COM QUEBRA POR VÍRGULA */}
+                          {hasNotes ? (
+                            <div className="mt-3 space-y-3 w-full">
+                              {noteSections.map((section: string, i: number) => {
+                                // 2. Divide cada seção por vírgula para criar lista vertical
+                                const ingredients = section.split(',').map(s => s.trim().replace(/\.$/, '')); // Remove ponto final extra
 
-                          {item.notes && (
-                            <p className="text-[9px] text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded-md inline-block mt-2">
-                              Obs: {item.notes}
+                                return (
+                                  <div 
+                                    key={i} 
+                                    className="w-full text-xs text-neutral-600 dark:text-neutral-400 bg-amber-50/50 dark:bg-amber-900/10 p-2.5 rounded-lg border border-amber-100 dark:border-amber-900/20"
+                                  >
+                                    {/* Mapeia os ingredientes linha por linha */}
+                                    {ingredients.map((ing, j) => (
+                                      <div key={j} className={`leading-relaxed ${j > 0 ? 'mt-1 border-t border-amber-200/30 dark:border-amber-800/30 pt-1' : ''}`}>
+                                        {ing}
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-neutral-400 mt-1 italic">
+                              Sem adicionais
                             </p>
                           )}
-                        </div>
-                        <div className="text-xs md:text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                          R$ {Number(item.subtotal).toFixed(2)}
                         </div>
                       </div>
                     </div>
@@ -314,7 +320,6 @@ export default function OrderDetailsPage() {
               </div>
             </div>
 
-            {/* 6. BOTÃO DE AJUDA */}
             <a
               href={`https://wa.me/5571999999999?text=Ajuda com pedido #${order.id.slice(0, 8)}`}
               target="_blank"
