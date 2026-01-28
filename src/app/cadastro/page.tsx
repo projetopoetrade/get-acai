@@ -85,16 +85,27 @@ export default function RegisterPage() {
     // Chama Server Action
     const authResult = await register(registerData);
 
-    if (authResult.success) {
-      toast.success('Conta criada com sucesso!');
-      router.push('/');
-      router.refresh();
-    } else {
-      setErrors({ email: authResult.error || 'Erro ao criar conta' });
-      toast.error(authResult.error || 'Erro ao criar conta');
+    if (!authResult.success) {
+      const msg = authResult.error || 'Erro ao criar conta';
+    
+      if (msg.toLowerCase().includes('cpf')) {
+        setErrors((prev) => ({ ...prev, cpf: msg }));
+      } else if (msg.toLowerCase().includes('telefone')) {
+        setErrors((prev) => ({ ...prev, phone: msg }));
+      } else {
+        setErrors((prev) => ({ ...prev, email: msg }));
+      }
+    
+      toast.error(msg);
+      setIsLoading(false);
+      return;
     }
-
+    
+    toast.success('Conta criada com sucesso!');
+    router.push('/');
+    router.refresh();
     setIsLoading(false);
+    return;
   };
 
   return (
