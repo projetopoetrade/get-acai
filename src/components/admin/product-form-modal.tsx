@@ -25,7 +25,7 @@ const productSchema = z.object({
   
   isCombo: z.boolean().optional(),
   comboCount: z.coerce.number().min(1).optional(),
-  stock: z.string().optional(),
+  // ❌ STOCK REMOVIDO DAQUI
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -41,8 +41,8 @@ interface ProductFormModalProps {
 export function ProductFormModal({ isOpen, onClose, onSuccess, productToEdit, categories }: ProductFormModalProps) {
   const [saving, setSaving] = useState(false);
 
-  // Mantemos a tipagem aqui para garantir o autocomplete nos inputs
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<ProductFormData>({
+    // Mantemos 'as any' para garantir que o TypeScript aceite a coerção do Zod sem conflitos
     resolver: zodResolver(productSchema) as any,
     defaultValues: {
       isCombo: false,
@@ -75,7 +75,7 @@ export function ProductFormModal({ isOpen, onClose, onSuccess, productToEdit, ca
           categoryId: catId || categories[0]?.id || '',
           isCombo: productToEdit.isCombo || false,
           comboCount: productToEdit.comboCount || 1,
-          stock: productToEdit.stock ? String(productToEdit.stock) : '',
+          // ❌ STOCK REMOVIDO DAQUI
         });
       } else {
         reset({
@@ -87,7 +87,7 @@ export function ProductFormModal({ isOpen, onClose, onSuccess, productToEdit, ca
             categoryId: categories[0]?.id || '',
             isCombo: false,
             comboCount: 1,
-            stock: '',
+            // ❌ STOCK REMOVIDO DAQUI
         });
       }
     }
@@ -105,7 +105,7 @@ export function ProductFormModal({ isOpen, onClose, onSuccess, productToEdit, ca
         categoryId: data.categoryId,
         isCombo: data.isCombo,
         comboCount: data.isCombo ? Number(data.comboCount) : 1,
-        stock: data.stock ? parseInt(data.stock) : null,
+        // ❌ STOCK REMOVIDO DO PAYLOAD
       };
 
       if (productToEdit) {
@@ -144,8 +144,7 @@ export function ProductFormModal({ isOpen, onClose, onSuccess, productToEdit, ca
 
         {/* Corpo com Scroll */}
         <div className="overflow-y-auto flex-1 p-6">
-          {/* ✅ CORREÇÃO AQUI: (onSubmit as any) resolve o conflito de tipos */}
-          <form id="product-form" onSubmit={handleSubmit(onSubmit as any)} className="space-y-5">
+          <form id="product-form" onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             
             {/* Upload de Imagem */}
             <div>
@@ -175,8 +174,8 @@ export function ProductFormModal({ isOpen, onClose, onSuccess, productToEdit, ca
               />
             </div>
 
-            {/* Grid de Preços e Estoque */}
-            <div className="grid grid-cols-3 gap-3 bg-neutral-50 dark:bg-neutral-800/50 p-3 rounded-lg border border-neutral-100 dark:border-neutral-800">
+            {/* Grid de Preços (Agora apenas 2 colunas) */}
+            <div className="grid grid-cols-2 gap-3 bg-neutral-50 dark:bg-neutral-800/50 p-3 rounded-lg border border-neutral-100 dark:border-neutral-800">
                <div>
                   <label className="block text-xs font-bold text-neutral-500 mb-1.5 uppercase">Preço (R$)</label>
                   <Input {...register('price')} placeholder="0,00" />
@@ -186,11 +185,6 @@ export function ProductFormModal({ isOpen, onClose, onSuccess, productToEdit, ca
                <div>
                   <label className="block text-xs font-bold text-neutral-500 mb-1.5 uppercase">Original (De/Por)</label>
                   <Input {...register('originalPrice')} placeholder="0,00" />
-               </div>
-
-               <div>
-                  <label className="block text-xs font-bold text-neutral-500 mb-1.5 uppercase">Estoque</label>
-                  <Input {...register('stock')} placeholder="∞" />
                </div>
             </div>
 
