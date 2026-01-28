@@ -4,39 +4,33 @@ import { useState, useEffect } from 'react';
 import { categoriesService, Category } from '@/services/categories';
 
 export interface FrontendCategory {
-  id: string; // ID do frontend (combos, monte-seu, classicos, bebidas, etc)
+  id: string; // Slug da categoria (ex: "promo-do-dia", "monte-o-seu")
   label: string; // Nome para exibição
   description?: string;
   badge?: string;
-  backendCategoryId?: string; // UUID da categoria no banco
+  backendCategoryId?: string; // UUID da categoria no banco (para operações admin)
 }
 
-// Mapeia nome da categoria do backend para o ID do frontend
-const mapCategoryNameToFrontendId = (categoryName: string): string => {
-  const normalized = categoryName
+// ✅ MESMA função do products.ts (consistência garantida)
+const createCategorySlug = (name: string): string => {
+  return name
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .trim();
+    .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+    .replace(/[^a-z0-9\s-]/g, '') // Remove caracteres especiais
+    .trim()
+    .replace(/\s+/g, '-'); // Substitui espaços por hífens
+};
+
+// ✅ OPCIONAL: Badges específicos por categoria (pode customizar aqui)
+const getCategoryBadge = (categoryName: string): string | undefined => {
+  const normalized = createCategorySlug(categoryName);
   
-  if (normalized.includes('combo') || normalized === 'combos') {
-    return 'combos';
-  }
-  if (normalized.includes('monte') || normalized.includes('personaliz') || normalized === 'monte-seu' || normalized === 'monte seu') {
-    return 'monte-seu';
-  }
-  if (normalized.includes('classic') || normalized === 'classicos') {
-    return 'classicos';
-  }
-  if (normalized.includes('bebida') || normalized === 'bebidas') {
-    return 'bebidas';
-  }
-  if (normalized.includes('complement')) {
-    return 'complemento';
-  }
+  // Adicione badges personalizados aqui
+  if (normalized === 'combos') return '15% OFF';
+  if (normalized === 'promo-do-dia') return 'NOVO';
   
-  // Default: usa o nome normalizado como ID
-  return normalized.replace(/\s+/g, '-');
+  return undefined;
 };
 
 export function useCategories() {
@@ -52,37 +46,41 @@ export function useCategories() {
         
         const backendCategories = await categoriesService.getAll();
         
-        // Mapeia categorias do backend para formato do frontend
+        // ✅ Mapeia categorias do backend para formato do frontend
         const mappedCategories: FrontendCategory[] = backendCategories.map((cat: Category) => {
-          const frontendId = mapCategoryNameToFrontendId(cat.name);
+          const slug = createCategorySlug(cat.name);
           
           return {
-            id: frontendId,
+            id: slug, // ✅ Slug gerado dinamicamente
             label: cat.name,
-            backendCategoryId: cat.id,
+            backendCategoryId: cat.id, // UUID mantido para operações admin
             description: cat.description,
-            // Adiciona badge para combos se necessário
-            badge: frontendId === 'combos' ? '15% OFF' : undefined,
+            badge: getCategoryBadge(cat.name),
           };
         });
 
-        // Ordena por order se disponível, senão mantém ordem original
+        // ✅ Ordena por order se disponível
         mappedCategories.sort((a, b) => {
-          const catA = backendCategories.find(c => mapCategoryNameToFrontendId(c.name) === a.id);
-          const catB = backendCategories.find(c => mapCategoryNameToFrontendId(c.name) === b.id);
+          const catA = backendCategories.find(c => c.id === a.backendCategoryId);
+          const catB = backendCategories.find(c => c.id === b.backendCategoryId);
           const orderA = catA?.order ?? 999;
           const orderB = catB?.order ?? 999;
           return orderA - orderB;
         });
 
         setCategories(mappedCategories);
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[useCategories] Categorias carregadas:', mappedCategories);
+        }
       } catch (error) {
         console.error('Erro ao carregar categorias:', error);
         setIsError(true);
-        // Fallback para categorias padrão em caso de erro
+        
+        // ✅ Fallback para categorias padrão em caso de erro
         setCategories([
           { id: 'combos', label: 'Combos', badge: '15% OFF' },
-          { id: 'monte-seu', label: 'Monte o Seu', description: 'Personalize seu açaí' },
+          { id: 'monte-o-seu', label: 'Monte o Seu', description: 'Personalize seu açaí' },
           { id: 'classicos', label: 'Clássicos', description: 'Combinações especiais' },
         ]);
       } finally {
