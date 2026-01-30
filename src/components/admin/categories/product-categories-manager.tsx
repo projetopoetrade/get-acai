@@ -142,16 +142,21 @@ export function ProductCategoriesManager({ categories: initialCategories }: Prod
     })
   }
 
-  const handleDelete = async () => {
+  // ✅ CORRIGIDO: Método mais explícito
+  const confirmDelete = async () => {
     if (!categoryToDelete) {
       console.error('[DELETE] Nenhuma categoria selecionada')
       return
     }
 
-    console.log('[DELETE] Iniciando exclusão...', categoryToDelete)
+    console.log('[DELETE] Confirmando exclusão de:', categoryToDelete)
     
     const deletePromise = async () => {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories/${categoryToDelete.id}`, {
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/categories/${categoryToDelete.id}`
+      console.log('[DELETE] URL:', url)
+      console.log('[DELETE] Método: DELETE')
+      
+      const response = await fetch(url, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
@@ -159,20 +164,32 @@ export function ProductCategoriesManager({ categories: initialCategories }: Prod
       })
 
       console.log('[DELETE] Response status:', response.status)
+      console.log('[DELETE] Response headers:', Object.fromEntries(response.headers.entries()))
 
       if (!response.ok) {
-        const error = await response.json()
+        let error
+        try {
+          error = await response.json()
+        } catch {
+          error = { message: `Erro HTTP ${response.status}` }
+        }
         console.error('[DELETE] Erro:', error)
         throw new Error(error.message || 'Erro ao deletar categoria')
       }
 
       console.log('[DELETE] Sucesso')
       
+      const returnData = { name: categoryToDelete.name }
+      
+      // Fecha dialog e limpa estado
       setDeleteDialogOpen(false)
       setCategoryToDelete(null)
+      
+      // Aguarda um pouco antes de refresh
+      await new Promise(resolve => setTimeout(resolve, 100))
       router.refresh()
       
-      return { name: categoryToDelete.name }
+      return returnData
     }
 
     toast.promise(deletePromise(), {
@@ -192,7 +209,6 @@ export function ProductCategoriesManager({ categories: initialCategories }: Prod
     if (targetIndex < 0 || targetIndex >= sortedCategories.length) return
 
     const reorderPromise = async () => {
-      // ✅ Cria novo array com a ordem trocada
       const reordered = [...sortedCategories]
       const [movedItem] = reordered.splice(currentIndex, 1)
       reordered.splice(targetIndex, 0, movedItem)
@@ -203,7 +219,6 @@ export function ProductCategoriesManager({ categories: initialCategories }: Prod
         newOrder: i 
       })))
       
-      // ✅ Atualiza TODAS as categorias com novos índices sequenciais
       const updates = reordered.map((cat, index) => 
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories/${cat.id}`, {
           method: 'PATCH',
@@ -232,7 +247,6 @@ export function ProductCategoriesManager({ categories: initialCategories }: Prod
         throw new Error('Erro ao atualizar ordem')
       }
 
-      // ✅ Atualiza estado local com ordem sequencial
       const newCategories = reordered.map((cat, index) => ({
         ...cat,
         order: index
@@ -261,6 +275,12 @@ export function ProductCategoriesManager({ categories: initialCategories }: Prod
     console.log('[DELETE DIALOG] Abrindo para:', { id, name })
     setCategoryToDelete({ id, name })
     setDeleteDialogOpen(true)
+  }
+
+  const closeDeleteDialog = () => {
+    console.log('[DELETE DIALOG] Fechando')
+    setDeleteDialogOpen(false)
+    setCategoryToDelete(null)
   }
 
   const startEdit = (category: Category) => {
@@ -485,7 +505,7 @@ export function ProductCategoriesManager({ categories: initialCategories }: Prod
         )}
       </div>
 
-      {/* ✅ Dialog de confirmação de exclusão */}
+      {/* ✅ Dialog de confirmação com onClick explícito */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent className="bg-white dark:bg-neutral-900 border-2 border-neutral-200 dark:border-neutral-800 z-[9999]">
           <AlertDialogHeader>
@@ -499,17 +519,17 @@ export function ProductCategoriesManager({ categories: initialCategories }: Prod
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel 
-              onClick={() => {
-                console.log('[DELETE DIALOG] Cancelado')
-                setDeleteDialogOpen(false)
-                setCategoryToDelete(null)
-              }}
+              onClick={closeDeleteDialog}
               className="border-neutral-300 dark:border-neutral-700"
             >
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDelete}
+              onClick={(e) => {
+                e.preventDefault() // ✅ Previne comportamento default
+                console.log('[DELETE DIALOG] Botão Deletar clicado')
+                confirmDelete()
+              }}
               className="bg-red-600 text-white hover:bg-red-700"
             >
               Deletar

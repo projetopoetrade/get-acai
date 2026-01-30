@@ -1,79 +1,69 @@
+// @/components/menu/product-card.tsx
 'use client';
 
-import { useState } from 'react';
+import { Product } from '@/types/product';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Product } from '@/types/product';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Cherry } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const [imageError, setImageError] = useState(false);
+  // Calcula a porcentagem de desconto
+  const discountPercentage = product.originalPrice
+    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    : 0;
 
   return (
-    <Link href={`/produto/${product.id}`} className="h-full">
-      {/* ✅ MUDANÇAS AQUI:
-          - Base: shadow-md (mais destaque inicial)
-          - Hover: hover:shadow-xl (destaque maior ao passar o mouse)
-      */}
-      <Card className="relative overflow-hidden group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer dark:bg-card dark:border-neutral-800 h-full p-0 flex flex-col border border-neutral-100 shadow-md rounded-xl">
-        
-        {product.hasPromo && product.promoText && (
-          <Badge
-            className="absolute top-2 right-2 z-10 font-semibold shadow-sm"
-            style={{ backgroundColor: '#fcc90c', color: '#430238' }}
-          >
-            {product.promoText}
+    <Link href={`/produto/${product.id}`}>
+      <div className="group relative bg-white dark:bg-neutral-900 rounded-2xl overflow-hidden border border-neutral-100 dark:border-neutral-800 hover:shadow-lg transition-all duration-300 cursor-pointer">
+
+        {/* Badge de Desconto (opcional) */}
+        {discountPercentage > 0 && (
+          <Badge className="absolute top-2 right-2 z-10 bg-red-500 text-white">
+            -{discountPercentage}%
           </Badge>
         )}
 
-        <div className="relative aspect-square overflow-hidden bg-white border-b border-neutral-100 dark:border-neutral-800 shrink-0">
-          {imageError ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-neutral-50 dark:bg-neutral-900">
-              <Cherry className="w-16 h-16" style={{ color: '#c69abf' }} />
+        {/* Imagem do Produto */}
+        <div className="relative aspect-square overflow-hidden">
+          <Image
+            src={product.imageUrl}
+            alt={product.name}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        </div>
+
+        {/* Informações do Produto */}
+        <div className="p-4 space-y-2">
+          <h3 className="font-semibold text-neutral-900 dark:text-white line-clamp-2">
+            {product.name}
+          </h3>
+
+          {/* ✅ PREÇOS LADO A LADO (HORIZONTAL) */}
+          {/* Preços em Coluna */}
+          <div className="space-y-0.5">
+            {product.originalPrice && (
+              <div className="text-xs text-neutral-400 dark:text-neutral-500 line-through">
+                De: R$ {product.originalPrice.toFixed(2)}
+              </div>
+            )}
+            <div className={`font-bold text-lg ${product.originalPrice ? 'text-[#9d0094] dark:text-[#9d0094]' : 'text-neutral-900 dark:text-white'}`}>
+              R$ {product.price.toFixed(2)}
             </div>
-          ) : (
-            <Image
-              src={product.imageUrl}
-              alt={product.name}
-              fill
-              className="object-cover group-hover:scale-105 transition-transform duration-300"
-              sizes="(max-width: 768px) 50vw, 25vw"
-              onError={() => setImageError(true)}
-            />
+          </div>
+
+
+          {!product.available && (
+            <Badge variant="secondary" className="text-xs">
+              Indisponível
+            </Badge>
           )}
         </div>
-
-        <div className="px-3 pt-3 pb-5 space-y-2 flex-1 flex flex-col justify-between bg-white dark:bg-card">
-          <div className="min-h-[60px]">
-            <h3 className="font-semibold text-sm leading-tight line-clamp-2 mb-1 text-neutral-900 dark:text-neutral-100">
-              {product.name}
-            </h3>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-2">
-              {product.description}
-            </p>
-          </div>
-
-          <div className="flex flex-col pt-1">
-            {product.hasPromo && product.originalPrice && (
-              <span className="text-[10px] text-neutral-400 dark:text-neutral-500 line-through">
-                R$ {Number(product.originalPrice).toFixed(2)}
-              </span>
-            )}
-            <span
-              className="text-lg font-bold"
-              style={{ color: '#9d0094' }}
-            >
-              R$ {Number(product.price || 0).toFixed(2)}
-            </span>
-          </div>
-        </div>
-      </Card>
+      </div>
     </Link>
   );
 }
