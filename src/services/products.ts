@@ -107,7 +107,8 @@ const mapProductFromAPI = async (p: any): Promise<Product> => {
     isCombo: p.isCombo ?? false,
     isCustomizable: p.isCustomizable ?? true,
     highlight: p.highlight,
-    sizeId: p.sizeId,
+    // API pode mandar `sizeId` ou `size: { id, name }` (docs: GET /products/:id retorna `size`)
+    sizeId: p.sizeId ?? p.size?.id,
     sizeGroup: p.sizeGroup,
   };
 };
@@ -191,6 +192,29 @@ export const productsService = {
         status: error.response?.status,
       });
       throw error;
+    }
+  },
+
+  /**
+   * Busca lista de tamanhos disponíveis
+   * GET /products/sizes
+   */
+  getSizes: async (): Promise<Array<{ id: string; name: string; ml?: number; order?: number }>> => {
+    const isDev = process.env.NODE_ENV === 'development';
+    try {
+      const res = await api.get('/products/sizes');
+      if (isDev) {
+        console.log('[productsService.getSizes] Tamanhos recebidos:', res.data);
+      }
+      return res.data || [];
+    } catch (error: any) {
+      if (isDev) {
+        console.warn('[productsService.getSizes] Erro ao buscar tamanhos:', {
+          error: error.message,
+          response: error.response?.data,
+        });
+      }
+      return [];
     }
   },
 

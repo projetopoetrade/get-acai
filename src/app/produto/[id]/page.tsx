@@ -99,7 +99,8 @@ export default function ProductPage() {
           isCustomizable: (productData as any).isCustomizable ?? true,
           hasPromo: (productData as any).hasPromo,
           promoText: (productData as any).promoText,
-          sizeId: (productData as any).size?.id,
+          // productsService já devolve sizeId; manter fallback para payloads antigos
+          sizeId: (productData as any).sizeId ?? (productData as any).size?.id,
           sizeGroup: (productData as any).sizeGroup,
         };
         setProduct(mappedProduct);
@@ -110,17 +111,35 @@ export default function ProductPage() {
         try {
           const limitsData = await toppingsService.getProductLimits(productId);
           const limitsMap: Record<string, Record<ToppingCategory, number>> = {};
-          limitsData.forEach(limit => {
-            if (!limitsMap[limit.sizeId]) {
-              limitsMap[limit.sizeId] = { frutas: 0, complementos: 0, cremes: 0, caldas: 0, extras: 0 };
+
+          // Backend pode retornar:
+          // 1) Array de limites por sizeId/categoria (formato antigo/documentado)
+          // 2) Objeto direto por categoria (ex: { frutas: 2 }) (formato novo)
+          if (Array.isArray(limitsData)) {
+            limitsData.forEach(limit => {
+              if (!limitsMap[limit.sizeId]) {
+                limitsMap[limit.sizeId] = { frutas: 0, complementos: 0, cremes: 0, caldas: 0, extras: 0 };
+              }
+              const category = limit.toppingCategoryName.toLowerCase();
+              if (category.includes('fruta')) limitsMap[limit.sizeId].frutas = limit.maxQuantity;
+              else if (category.includes('complemento')) limitsMap[limit.sizeId].complementos = limit.maxQuantity;
+              else if (category.includes('creme')) limitsMap[limit.sizeId].cremes = limit.maxQuantity;
+              else if (category.includes('calda')) limitsMap[limit.sizeId].caldas = limit.maxQuantity;
+              else if (category.includes('extra') || category.includes('premium')) limitsMap[limit.sizeId].extras = limit.maxQuantity;
+            });
+          } else if (limitsData && typeof limitsData === 'object') {
+            const key = mappedProduct.sizeId;
+            if (key) {
+              limitsMap[key] = {
+                frutas: Number((limitsData as any).frutas) || 0,
+                complementos: Number((limitsData as any).complementos) || 0,
+                cremes: Number((limitsData as any).cremes) || 0,
+                caldas: Number((limitsData as any).caldas) || 0,
+                extras: Number((limitsData as any).extras) || 0,
+              };
             }
-            const category = limit.toppingCategoryName.toLowerCase();
-            if (category.includes('fruta')) limitsMap[limit.sizeId].frutas = limit.maxQuantity;
-            else if (category.includes('complemento')) limitsMap[limit.sizeId].complementos = limit.maxQuantity;
-            else if (category.includes('creme')) limitsMap[limit.sizeId].cremes = limit.maxQuantity;
-            else if (category.includes('calda')) limitsMap[limit.sizeId].caldas = limit.maxQuantity;
-            else if (category.includes('extra') || category.includes('premium')) limitsMap[limit.sizeId].extras = limit.maxQuantity;
-          });
+          }
+
           setToppingLimits(limitsMap);
         } catch {
           setToppingLimits({});
@@ -446,9 +465,9 @@ export default function ProductPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle>{TOPPING_CATEGORY_LABELS[category]}</CardTitle>
-                      <p className="text-xs text-neutral-500 mt-1">
-                        {isExtras ? 'Adicionais pagos' : limit > 0 ? `Escolha até ${limit} grátis` : 'Selecione quantos quiser'}
-                      </p>
+                      {isExtras && (
+                        <p className="text-xs text-neutral-500 mt-1">Adicionais pagos</p>
+                      )}
                     </div>
                     {!isExtras && limit > 0 && !isSkipped && (
                       <span className={`text-sm font-medium px-2 py-0.5 rounded-full ${selectedCount >= limit ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-600'}`}>

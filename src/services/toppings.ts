@@ -133,13 +133,18 @@ export const toppingsService = {
   /**
    * Busca limites de toppings grátis para um produto específico
    */
-  getProductLimits: async (productId: string): Promise<Array<{
-    sizeId: string;
-    sizeName: string;
-    toppingCategoryId: string;
-    toppingCategoryName: string;
-    maxQuantity: number;
-  }>> => {
+  getProductLimits: async (
+    productId: string
+  ): Promise<
+    | Array<{
+        sizeId: string;
+        sizeName: string;
+        toppingCategoryId: string;
+        toppingCategoryName: string;
+        maxQuantity: number;
+      }>
+    | Partial<Record<Topping['category'], number>>
+  > => {
     const isDev = process.env.NODE_ENV === 'development';
     
     try {

@@ -22,6 +22,7 @@ const productSchema = z.object({
   originalPrice: z.string().optional(),
   imageUrl: z.string().optional().or(z.literal('')),
   categoryId: z.string().min(1, 'Categoria obrigatória'),
+  sizeId: z.string().optional().or(z.literal('')),
   
   isCombo: z.boolean().optional(),
   comboCount: z.coerce.number().min(1).optional(),
@@ -38,8 +39,12 @@ interface ProductFormModalProps {
   categories: Category[];
 }
 
+type ProductSize = { id: string; name: string; ml?: number; order?: number };
+
 export function ProductFormModal({ isOpen, onClose, onSuccess, productToEdit, categories }: ProductFormModalProps) {
   const [saving, setSaving] = useState(false);
+  const [sizes, setSizes] = useState<ProductSize[]>([]);
+  const [sizesLoading, setSizesLoading] = useState(false);
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<ProductFormData>({
     // Mantemos 'as any' para garantir que o TypeScript aceite a coerção do Zod sem conflitos
@@ -47,6 +52,7 @@ export function ProductFormModal({ isOpen, onClose, onSuccess, productToEdit, ca
     defaultValues: {
       isCombo: false,
       comboCount: 1,
+      sizeId: '',
     }
   });
 
@@ -55,6 +61,14 @@ export function ProductFormModal({ isOpen, onClose, onSuccess, productToEdit, ca
 
   useEffect(() => {
     if (isOpen) {
+      // Carrega tamanhos do backend (para criação/edição)
+      setSizesLoading(true);
+      productsService
+        .getSizes()
+        .then(setSizes)
+        .catch(() => setSizes([]))
+        .finally(() => setSizesLoading(false));
+
       if (productToEdit) {
         const formatPrice = (val?: number | string) => {
           if (!val) return '';
@@ -66,6 +80,11 @@ export function ProductFormModal({ isOpen, onClose, onSuccess, productToEdit, ca
              ? (productToEdit.category as Category)?.id 
              : productToEdit.category || productToEdit.categoryId;
 
+        const sizeId =
+          (productToEdit as any).sizeId ||
+          (productToEdit as any).size?.id ||
+          '';
+
         reset({
           name: productToEdit.name || '',
           description: productToEdit.description || '',
@@ -73,6 +92,7 @@ export function ProductFormModal({ isOpen, onClose, onSuccess, productToEdit, ca
           originalPrice: formatPrice(productToEdit.originalPrice),
           imageUrl: productToEdit.imageUrl || '',
           categoryId: catId || categories[0]?.id || '',
+          sizeId,
           isCombo: productToEdit.isCombo || false,
           comboCount: productToEdit.comboCount || 1,
           // ❌ STOCK REMOVIDO DAQUI
@@ -85,6 +105,7 @@ export function ProductFormModal({ isOpen, onClose, onSuccess, productToEdit, ca
             originalPrice: '',
             imageUrl: '',
             categoryId: categories[0]?.id || '',
+            sizeId: '',
             isCombo: false,
             comboCount: 1,
             // ❌ STOCK REMOVIDO DAQUI
@@ -103,6 +124,7 @@ export function ProductFormModal({ isOpen, onClose, onSuccess, productToEdit, ca
         originalPrice: data.originalPrice ? parseFloat(data.originalPrice.replace(',', '.')) : null,
         imageUrl: data.imageUrl || '',
         categoryId: data.categoryId,
+        sizeId: data.sizeId ? data.sizeId : null,
         isCombo: data.isCombo,
         comboCount: data.isCombo ? Number(data.comboCount) : 1,
         // ❌ STOCK REMOVIDO DO PAYLOAD
@@ -207,6 +229,32 @@ export function ProductFormModal({ isOpen, onClose, onSuccess, productToEdit, ca
                 </select>
               )}
               {errors.categoryId && <span className="text-red-500 text-xs">{errors.categoryId.message}</span>}
+            </div>
+
+            {/* Tamanho */}
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Tamanho</label>
+              {sizesLoading ? (
+                <div className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm flex items-center text-neutral-500">
+                  Carregando...
+                </div>
+              ) : (
+                <select
+                  {...register('sizeId')}
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <option value="">Sem tamanho</option>
+                  {sizes.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                      {typeof s.ml === 'number' ? ` (${s.ml}ml)` : ''}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <p className="text-[10px] text-neutral-400 mt-1">
+                Para produtos “monte-seu”, o tamanho define os limites de toppings grátis.
+              </p>
             </div>
 
             {/* SEÇÃO DE COMBO */}
